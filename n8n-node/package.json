@@ -1,0 +1,15 @@
+{
+  "name": "n8n-nodes-webintel",
+  "version": "1.0.0",
+  "description": "WebIntel nodes for n8n — web intelligence and market research",
+  "keywords": ["n8n-community-node-package"],
+  "license": "MIT",
+  "homepage": "https://webintel.diyaaaa.in",
+  "author": { "name": "diyaa.ai", "email": "udayakirantumma@gmail.com" },
+  "repository": { "type": "git", "url": "https://github.com/diyaaai/n8n-nodes-webintel" },
+  "main": "index.js",
+  "scripts": { "build": "tsc && gulp build:icons", "dev": "tsc --watch", "prepublishOnly": "npm run build" },
+  "files": ["dist"],
+  "n8n": { "n8nNodesApiVersion": 1, "credentials": ["dist/credentials/WebIntelApi.credentials.js"], "nodes": ["dist/nodes/WebIntel/WebIntel.node.js"] },
+  "devDependencies": { "@types/node": "^20.0.0", "n8n-workflow": "*", "typescript": "^5.0.0" }
+}

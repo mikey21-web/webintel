@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+*.log
+.DS_Store
+.next/
+dashboard/.next/
+dashboard/node_modules/
+cli/node_modules/
+n8n-node/node_modules/

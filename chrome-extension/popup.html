@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WebIntel</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 380px;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #0f1117;
+      color: #e1e4ea;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: #2a2d3a; border-radius: 4px; }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px 12px;
+      border-bottom: 1px solid #1e2030;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo-icon {
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 14px;
+      color: #fff;
+    }
+    .logo-text {
+      font-weight: 700;
+      font-size: 16px;
+      color: #f0f2f8;
+      letter-spacing: -0.3px;
+    }
+    .settings-btn {
+      background: none;
+      border: none;
+      color: #6b6f82;
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 6px;
+      transition: all 0.2s;
+      font-size: 18px;
+      line-height: 1;
+    }
+    .settings-btn:hover { background: #1e2030; color: #e1e4ea; }
+
+    .content { padding: 16px 20px 20px; }
+
+    .domain-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: #161822;
+      border-radius: 10px;
+      margin-bottom: 16px;
+      font-size: 12px;
+      color: #8b8fa7;
+    }
+    .domain-bar .domain-name {
+      color: #e1e4ea;
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .brand-profile {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .brand-logo {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: #1e2030;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      overflow: hidden;
+      font-size: 20px;
+      font-weight: 700;
+      color: #6366f1;
+    }
+    .brand-logo img { width: 100%; height: 100%; object-fit: contain; }
+    .brand-info { min-width: 0; }
+    .brand-name {
+      font-weight: 700;
+      font-size: 15px;
+      color: #f0f2f8;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .brand-description {
+      font-size: 12px;
+      color: #6b6f82;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      margin-top: 2px;
+    }
+    .brand-industry {
+      display: inline-block;
+      margin-top: 4px;
+      padding: 2px 8px;
+      background: rgba(99, 102, 241, 0.12);
+      color: #8b9cf6;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .stat-card {
+      background: #161822;
+      border-radius: 10px;
+      padding: 12px;
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 22px;
+      font-weight: 800;
+      color: #f0f2f8;
+      line-height: 1.2;
+    }
+    .stat-value.score-high { color: #34d399; }
+    .stat-value.score-mid { color: #fbbf24; }
+    .stat-value.score-low { color: #f87171; }
+    .stat-label {
+      font-size: 11px;
+      color: #6b6f82;
+      margin-top: 2px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 2px;
+      background: #161822;
+      border-radius: 10px;
+      padding: 3px;
+      margin-bottom: 12px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 8px 4px;
+      background: transparent;
+      border: none;
+      color: #6b6f82;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tab-btn:hover { color: #e1e4ea; }
+    .tab-btn.active {
+      background: #1e2030;
+      color: #f0f2f8;
+      font-weight: 600;
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .data-list { list-style: none; }
+    .data-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #1e2030;
+    }
+    .data-item:last-child { border-bottom: none; }
+    .data-key { color: #8b8fa7; font-size: 12px; }
+    .data-value { color: #e1e4ea; font-weight: 500; font-size: 12px; text-align: right; }
+    .data-value a { color: #6366f1; text-decoration: none; }
+    .data-value a:hover { text-decoration: underline; }
+
+    .pricing-item {
+      padding: 10px 0;
+      border-bottom: 1px solid #1e2030;
+    }
+    .pricing-item:last-child { border-bottom: none; }
+    .pricing-name { font-weight: 600; color: #f0f2f8; }
+    .pricing-amount { color: #34d399; font-weight: 700; margin-top: 2px; }
+    .pricing-desc { font-size: 11px; color: #6b6f82; margin-top: 2px; }
+
+    .footer {
+      padding: 12px 20px;
+      border-top: 1px solid #1e2030;
+    }
+    .footer-link {
+      display: block;
+      text-align: center;
+      color: #6366f1;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 13px;
+      padding: 8px;
+      border-radius: 8px;
+      transition: background 0.2s;
+    }
+    .footer-link:hover { background: rgba(99, 102, 241, 0.08); }
+
+    .loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 0;
+    }
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid #1e2030;
+      border-top-color: #6366f1;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { margin-top: 12px; color: #6b6f82; font-size: 13px; }
+
+    .error-state {
+      text-align: center;
+      padding: 30px 0;
+    }
+    .error-icon {
+      font-size: 36px;
+      margin-bottom: 8px;
+    }
+    .error-title {
+      font-weight: 600;
+      font-size: 14px;
+      color: #f87171;
+    }
+    .error-desc {
+      color: #6b6f82;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+    .error-btn {
+      margin-top: 12px;
+      padding: 8px 20px;
+      background: #6366f1;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .error-btn:hover { background: #4f46e5; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .badge-green { background: rgba(52, 211, 153, 0.12); color: #34d399; }
+    .badge-social { background: rgba(99, 102, 241, 0.12); color: #8b9cf6; }
+
+    .swot-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .swot-item {
+      padding: 8px;
+      border-radius: 6px;
+      font-size: 11px;
+    }
+    .swot-s { background: rgba(52, 211, 153, 0.08); color: #6ee7b7; }
+    .swot-w { background: rgba(248, 113, 113, 0.08); color: #fca5a5; }
+    .swot-o { background: rgba(96, 165, 250, 0.08); color: #93c5fd; }
+    .swot-t { background: rgba(251, 191, 36, 0.08); color: #fcd34d; }
+    .swot-label { font-weight: 700; margin-bottom: 2px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">W</div>
+      <span class="logo-text">WebIntel</span>
+    </div>
+    <button class="settings-btn" id="settingsBtn" title="Settings">&#9881;</button>
+  </div>
+
+  <div class="content" id="content">
+    <div class="loading" id="loadingState">
+      <div class="spinner"></div>
+      <div class="loading-text">Fetching domain intelligence...</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <a class="footer-link" href="#" id="fullReportLink" target="_blank">View Full Report &rarr;</a>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

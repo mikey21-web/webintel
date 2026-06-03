@@ -1,0 +1,28 @@
+import { z } from 'zod';
+
+const envSchema = z.object({
+  PORT: z.coerce.number().default(3456),
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  DATABASE_URL: z.string(),
+  REDIS_URL: z.string(),
+  ANTHROPIC_API_KEY: z.string(),
+  R2_ACCOUNT_ID: z.string(),
+  R2_ACCESS_KEY_ID: z.string(),
+  R2_SECRET_ACCESS_KEY: z.string(),
+  R2_BUCKET_NAME: z.string().default('webintel-assets'),
+  R2_PUBLIC_URL: z.string(),
+  CRAWL4AI_SIDECAR_URL: z.string().default('http://localhost:8765'),
+  EVOLUTION_API_URL: z.string().optional(),
+  EVOLUTION_API_KEY: z.string().optional(),
+  EVOLUTION_INSTANCE: z.string().optional(),
+  SUPABASE_URL: z.string().optional(),
+  SUPABASE_ANON_KEY: z.string().optional(),
+});
+
+const parsed = envSchema.safeParse(process.env);
+if (!parsed.success) {
+  console.error('Invalid environment variables:', parsed.error.flatten().fieldErrors);
+  process.exit(1);
+}
+
+export const config = parsed.data;
