@@ -2,7 +2,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { db } from '../db/client';
 import { apiKeys, users } from '../db/schema';
 import { hashApiKey } from '../utils/hash';
-import { verifySupabaseJwt, isAnonKey } from '../utils/jwt';
+import { verify as verifyJwt, isAnonKey } from '../utils/jwt';
 import { eq, and } from 'drizzle-orm';
 
 declare module 'fastify' {
@@ -48,7 +48,7 @@ export async function requireAuth(request: FastifyRequest, reply: FastifyReply) 
     return;
   }
 
-  const jwtPayload = await verifySupabaseJwt(token);
+  const jwtPayload = await verifyJwt(token);
   if (!jwtPayload || !jwtPayload.sub) {
     return reply.status(401).send({ error: 'Invalid or expired JWT' });
   }

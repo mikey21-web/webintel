@@ -1,11 +1,8 @@
 import { FastifyInstance } from 'fastify';
-import SemanticImportance from '@anthropic-ai/sdk';
 import { resolveBrand } from '../brand/resolver';
 import { buildWhatsAppTheme } from '../brand/whatsapp';
-import { config } from '../config';
 import { requireAuth } from '../middleware/auth';
-
-const claude = new SemanticImportance({ apiKey: config.ANTHROPIC_API_KEY });
+import { askAI } from '../ai';
 
 export async function brandRoutes(app: FastifyInstance) {
   app.get('/profile', { preHandler: requireAuth }, async (req, reply) => {
@@ -122,24 +119,16 @@ export async function brandRoutes(app: FastifyInstance) {
       const { descriptor } = req.body as { descriptor: string };
       if (!descriptor) return reply.status(400).send({ error: 'descriptor is required in request body' });
 
-      const response = await claude.messages.create({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 500,
-        messages: [{
-          role: 'user',
-          content: `Identify the merchant/brand from this bank transaction descriptor: "${descriptor}".
+      const result = await askAI<{ brandName: string | null; domain: string | null; confidence: number }>(
+        'You are a merchant identification expert.',
+        `Identify the merchant/brand from this bank transaction descriptor: "${descriptor}".
 
-Return ONLY a JSON object (no markdown, no code fences) with these fields:
+Return ONLY a JSON object with these fields:
 - brandName: the identified merchant name
 - domain: the most likely website domain for this merchant
 - confidence: a number between 0 and 1 indicating confidence
 
-If you cannot identify the merchant, return {"brandName": null, "domain": null, "confidence": 0}.`,
-        }],
-      });
-
-      const content = response.content[0]?.type === 'text' ? response.content[0].text : '';
-      const result = JSON.parse(content.replace(/```json\s*/gi, '').replace(/```/g, '').trim());
+If you cannot identify the merchant, return {"brandName": null, "domain": null, "confidence": 0}.`);
 
       return {
         descriptor,

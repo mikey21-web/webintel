@@ -1,5 +1,5 @@
 import { scrapeDomain } from '../../scraping';
-import { askClaude } from '../../ai';
+import { askAI } from '../../ai';
 
 const PATTERNS: { name: string; regex: RegExp }[] = [
   { name: 'React', regex: /react\.?js|react\.?dom|__NEXT_DATA|next\.?js/i },
@@ -73,7 +73,7 @@ export async function runTechStackIntel(domain: string): Promise<TechStackResult
 
   const homeText = Object.values(pages)[0]?.text?.slice(0, 4000) || '';
   if (homeText) {
-    const claudeDetected = await askClaude<string[]>(
+    const claudeDetected = await askAI<string[]>(
       'You are a tech stack analyst. Identify technologies used by a company based on website content. Return a JSON array of strings.',
       `Identify the technology stack used by ${domain} from this content:\n\n${homeText}\n\nReturn a JSON array of technology names (e.g., ["React", "PostgreSQL", "AWS"]). Only include technologies you are highly confident about.`
     ).catch(() => [] as string[]);

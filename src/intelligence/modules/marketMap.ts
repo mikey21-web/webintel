@@ -1,5 +1,5 @@
 import { searchGoogle, scrapeDomain } from '../../scraping';
-import { askClaude } from '../../ai';
+import { askAI } from '../../ai';
 
 export interface CompanyProfile {
   name: string;
@@ -18,7 +18,7 @@ export interface MarketMapResult {
 }
 
 export async function runMarketMap(keyword: string, location?: string, limit: number = 15): Promise<MarketMapResult> {
-  const queries = await askClaude<string[]>(
+  const queries = await askAI<string[]>(
     'You are a market research analyst. Generate 3 Google search queries to find competitors in a given market. Return as a JSON array of strings.',
     `Generate 3 Google search queries to find companies in the "${keyword}" market${location ? ` in ${location}` : ''}. Return JSON array of strings.`
   );
@@ -39,7 +39,7 @@ export async function runMarketMap(keyword: string, location?: string, limit: nu
     try {
       const pages = await scrapeDomain(domain, ['/']);
       const text = Object.values(pages)[0]?.text.slice(0, 4000) || '';
-      const profile = await askClaude<CompanyProfile>(
+      const profile = await askAI<CompanyProfile>(
         'You are a market research analyst. Extract company profile information from website content. Return ONLY valid JSON.',
         `From this website content for domain "${domain}":\n\n${text}\n\nExtract: name, description, targetSegment, estimatedSize, pricingModel, uniqueAngle. Return JSON.`
       );
@@ -47,7 +47,7 @@ export async function runMarketMap(keyword: string, location?: string, limit: nu
     } catch { /* skip failed */ }
   }
 
-  const marketSummary = await askClaude<{ dominantPlayers: string[]; emergingPlayers: string[]; whitespaceGaps: string[] }>(
+  const marketSummary = await askAI<{ dominantPlayers: string[]; emergingPlayers: string[]; whitespaceGaps: string[] }>(
     'You are a market strategy analyst. Analyze market data and identify players and gaps. Return ONLY valid JSON.',
     `Based on these companies in the "${keyword}" market:\n${JSON.stringify(companies, null, 2)}\n\nIdentify: dominantPlayers (array), emergingPlayers (array), whitespaceGaps (array of unmet needs). Return JSON.`
   );

@@ -1,5 +1,5 @@
 import { scrapeDomain } from '../../scraping';
-import { askClaude } from '../../ai';
+import { askAI } from '../../ai';
 
 export interface SalesBriefResult {
   targetCompany: {
@@ -32,7 +32,7 @@ export async function runSalesBrief(targetDomain: string, yourProduct: string, y
     .map(([path, p]) => `--- ${path} ---\nTitle: ${p.title}\n${p.text.slice(0, 2500)}`)
     .join('\n\n');
 
-  const result = await askClaude<SalesBriefResult>(
+  const result = await askAI<SalesBriefResult>(
     'You are a sales intelligence analyst. Generate a sales brief comparing a target company with your product. Return ONLY valid JSON.',
     `Generate a sales brief for targeting ${targetDomain} with our product "${yourProduct}" (${yourDomain}).\n\nTarget Company Content:\n${targetText}\n\nOur Product Content:\n${yourText}\n\nReturn JSON with: targetCompany ({name,website,industry,size,description}), whyTheyNeedYou, openingLine (specific to their site content), talkingPoints (array of {point,evidence}), objections (array of {objection,response}), questions (array), redFlags (array), nextStep, estimatedDealSize, urgency.`
   );

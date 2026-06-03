@@ -1,5 +1,5 @@
 import { scrapeDomain } from '../../scraping';
-import { askClaude } from '../../ai';
+import { askAI } from '../../ai';
 
 export interface BuyingSignal {
   strength: 'high' | 'medium' | 'low';
@@ -31,7 +31,7 @@ export async function runLeadIntel(domains: string[], context?: string): Promise
         .map(([path, p]) => `--- ${path} ---\nTitle: ${p.title}\n${p.text.slice(0, 2000)}`)
         .join('\n\n');
 
-      const result = await askClaude<LeadIntelResult>(
+      const result = await askAI<LeadIntelResult>(
         'You are a lead intelligence analyst. Extract structured lead intelligence from company website content. Return ONLY valid JSON.',
         `Analyze this company website for domain "${domain}" and provide lead intelligence.\n${context ? `\nContext: ${context}\n` : ''}\n\nContent:\n${combinedText}\n\nReturn JSON with: companyName, industry, estimatedSize, estimatedRevenue, techStack (array), currentSolutions (array), painPoints (array), buyingSignals (array of {strength, reason}), redFlags (array), decisionMakers (array), outreachAngle, score (0-100), scoreReason.`
       );

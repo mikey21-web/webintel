@@ -5,12 +5,13 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   DATABASE_URL: z.string(),
   REDIS_URL: z.string(),
-  ANTHROPIC_API_KEY: z.string(),
-  R2_ACCOUNT_ID: z.string(),
-  R2_ACCESS_KEY_ID: z.string(),
-  R2_SECRET_ACCESS_KEY: z.string(),
+  ANTHROPIC_API_KEY: z.string().optional(),
+  OPENAI_API_KEY: z.string().optional(),
+  R2_ACCOUNT_ID: z.string().optional(),
+  R2_ACCESS_KEY_ID: z.string().optional(),
+  R2_SECRET_ACCESS_KEY: z.string().optional(),
   R2_BUCKET_NAME: z.string().default('webintel-assets'),
-  R2_PUBLIC_URL: z.string(),
+  R2_PUBLIC_URL: z.string().optional().default(''),
   CRAWL4AI_SIDECAR_URL: z.string().default('http://localhost:8765'),
   EVOLUTION_API_URL: z.string().optional(),
   EVOLUTION_API_KEY: z.string().optional(),
@@ -18,6 +19,7 @@ const envSchema = z.object({
   SUPABASE_URL: z.string().optional(),
   SUPABASE_ANON_KEY: z.string().optional(),
   SUPABASE_JWT_SECRET: z.string().optional(),
+  SUPABASE_JWK: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

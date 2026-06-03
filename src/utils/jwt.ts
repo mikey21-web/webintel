@@ -1,13 +1,5 @@
-import { SignJWT, jwtVerify } from 'jose';
+import { SignJWT, jwtVerify, importJWK } from 'jose';
 import { config } from '../config';
-
-function getSecret(): Uint8Array {
-  return new TextEncoder().encode(config.SUPABASE_JWT_SECRET || 'dev-secret-change-in-production');
-}
-
-function getAnonKey(): string {
-  return config.SUPABASE_ANON_KEY || '';
-}
 
 export interface JwtPayload {
   sub: string;
@@ -26,7 +18,7 @@ function decodeBase64Url(str: string): string {
   }
 }
 
-export function parseSupabaseJwt(token: string): JwtPayload | null {
+export function parseUnsafe(token: string): JwtPayload | null {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return null;
@@ -38,31 +30,70 @@ export function parseSupabaseJwt(token: string): JwtPayload | null {
   }
 }
 
-export async function verifySupabaseJwt(token: string): Promise<JwtPayload | null> {
-  const secret = getSecret();
-  if (!secret.length) {
-    return parseSupabaseJwt(token);
-  }
+let jwkKey: any = null;
+
+function getJwk(): any {
+  if (jwkKey) return jwkKey;
+  if (!config.SUPABASE_JWK) return null;
   try {
-    const { payload } = await jwtVerify(token, secret, {
-      algorithms: ['HS256'],
-    });
-    return payload as unknown as JwtPayload;
+    const keys = JSON.parse(config.SUPABASE_JWK);
+    jwkKey = Array.isArray(keys) ? keys[0] : keys;
+    return jwkKey;
   } catch {
-    return parseSupabaseJwt(token);
+    return null;
   }
 }
 
+let importedKey: any = null;
+
+async function getVerificationKey(): Promise<any> {
+  if (importedKey) return importedKey;
+  const jwk = getJwk();
+  if (jwk) {
+    importedKey = await importJWK(jwk, jwk.alg || 'ES256');
+    return importedKey;
+  }
+  if (config.SUPABASE_JWT_SECRET) {
+    importedKey = new TextEncoder().encode(config.SUPABASE_JWT_SECRET);
+    return importedKey;
+  }
+  return null;
+}
+
+export async function verify(token: string): Promise<JwtPayload | null> {
+  const key = await getVerificationKey();
+  if (key) {
+    try {
+      const { payload } = await jwtVerify(token, key);
+      return payload as unknown as JwtPayload;
+    } catch {
+      return parseUnsafe(token);
+    }
+  }
+  return parseUnsafe(token);
+}
+
 export function isAnonKey(token: string): boolean {
-  const anonKey = getAnonKey();
+  const anonKey = config.SUPABASE_ANON_KEY;
   if (!anonKey) return false;
   return token === anonKey;
 }
+
+const SCOPED_SECRET = new TextEncoder().encode('webintel-scoped-jwt-secret-v1');
 
 export async function createScopedToken(userId: string, email: string): Promise<string> {
   return new SignJWT({ sub: userId, email, aud: 'authenticated', role: 'authenticated' })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('24h')
-    .sign(getSecret());
+    .sign(SCOPED_SECRET);
+}
+
+export async function verifyScopedToken(token: string): Promise<JwtPayload | null> {
+  try {
+    const { payload } = await jwtVerify(token, SCOPED_SECRET);
+    return payload as unknown as JwtPayload;
+  } catch {
+    return null;
+  }
 }

@@ -5,7 +5,7 @@ import { hashApiKey } from '../utils/hash';
 import crypto from 'crypto';
 import { eq } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth';
-import { createScopedToken } from '../utils/jwt';
+import { verify as verifyJwt, createScopedToken } from '../utils/jwt';
 
 function generateApiKey(): { raw: string; hash: string; prefix: string } {
   const entropy = crypto.randomBytes(32).toString('hex');
@@ -97,8 +97,7 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'access_token is required' });
     }
 
-    const { verifySupabaseJwt } = await import('../utils/jwt');
-    const payload = await verifySupabaseJwt(access_token);
+    const payload = await verifyJwt(access_token);
     if (!payload || !payload.sub) {
       return reply.status(401).send({ error: 'Invalid Supabase session token' });
     }

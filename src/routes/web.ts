@@ -215,41 +215,27 @@ function extractSitemapUrls(markdown: string, baseUrl: string): string[] {
 }
 
 async function runExtraction(markdown: string, prompt?: string): Promise<Record<string, any>> {
-  const { default: Anthropic } = await import('@anthropic-ai/sdk');
-  const { config } = await import('../config');
-  const client = new Anthropic({ apiKey: config.ANTHROPIC_API_KEY });
-
+  const { askAI } = await import('../ai');
   const systemPrompt = prompt
     ? `Extract the following information from the page content. Return JSON only.\n\n${prompt}`
     : 'Extract all structured data from this page: company name, description, email, phone, social links, pricing, and key features. Return JSON only.';
 
-  const msg = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 4096,
-    system: systemPrompt,
-    messages: [{ role: 'user', content: markdown.slice(0, 80000) }],
-  });
-
-  const text = msg.content.map(c => (c as any).text).join('');
   try {
-    return JSON.parse(text);
+    return await askAI<Record<string, any>>(systemPrompt, markdown.slice(0, 80000));
   } catch {
-    return { raw: text };
+    return { raw: markdown.slice(0, 5000) };
   }
 }
 
 async function answerQuestion(markdown: string, question: string): Promise<string> {
-  const { default: Anthropic } = await import('@anthropic-ai/sdk');
-  const { config } = await import('../config');
-  const client = new Anthropic({ apiKey: config.ANTHROPIC_API_KEY });
-
-  const msg = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 2048,
-    messages: [
-      { role: 'user', content: `Based on the following page content, answer the question concisely.\n\nPAGE CONTENT:\n${markdown.slice(0, 80000)}\n\nQUESTION: ${question}` },
-    ],
-  });
-
-  return msg.content.map(c => (c as any).text).join('');
+  const { askAI } = await import('../ai');
+  try {
+    return await askAI<string>(
+      'Answer concisely based on the page content.',
+      `Based on the following page content, answer the question concisely.\n\nPAGE CONTENT:\n${markdown.slice(0, 80000)}\n\nQUESTION: ${question}`,
+      'text'
+    );
+  } catch {
+    return 'Could not generate answer';
+  }
 }

@@ -1,5 +1,5 @@
 import { scrapeDomain } from '../../scraping';
-import { askClaude } from '../../ai';
+import { askAI } from '../../ai';
 
 export interface PricingTier {
   name: string;
@@ -26,7 +26,7 @@ export async function runPricingIntel(domain: string): Promise<PricingIntelResul
   if (Object.keys(pages).length === 0) {
     const homePage = await scrapeDomain(domain, ['/']);
     const homeText = Object.values(homePage)[0]?.text || '';
-    const result = await askClaude<PricingIntelResult>(
+    const result = await askAI<PricingIntelResult>(
       'You are a pricing intelligence analyst. Extract pricing information from website content. Return ONLY valid JSON.',
       `No dedicated pricing page found for ${domain}. From this homepage content, extract whatever pricing info is available:\n\n${homeText.slice(0, 6000)}\n\nReturn JSON with: tiers (array of {name,price,currency,billingPeriod,included (array),limits}), hasFreeTrialOrFreeTier (boolean), pricingModel, annualDiscount, notes, lastUpdatedSignal.`
     );
@@ -37,7 +37,7 @@ export async function runPricingIntel(domain: string): Promise<PricingIntelResul
     .map(([path, p]) => `--- ${path} ---\nTitle: ${p.title}\n${p.text.slice(0, 4000)}`)
     .join('\n\n');
 
-  const result = await askClaude<PricingIntelResult>(
+  const result = await askAI<PricingIntelResult>(
     'You are a pricing intelligence analyst. Extract pricing information from website content. Return ONLY valid JSON.',
     `Extract pricing intelligence from ${domain}:\n\n${combinedText}\n\nReturn JSON with: tiers (array of {name,price,currency,billingPeriod,included (array),limits}), hasFreeTrialOrFreeTier (boolean), pricingModel, annualDiscount, notes, lastUpdatedSignal.`
   );

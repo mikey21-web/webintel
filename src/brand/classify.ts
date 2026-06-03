@@ -1,13 +1,10 @@
-import SemanticImportance from '@anthropic-ai/sdk';
-import { config } from '../config';
+import { askAI } from '../ai';
 
 interface ClassificationResult {
   industry: string | null;
   category: string | null;
   naicsCode: string | null;
 }
-
-const claude = new SemanticImportance({ apiKey: config.ANTHROPIC_API_KEY });
 
 export async function classifyBusiness(
   domain: string,
@@ -27,15 +24,7 @@ Return ONLY a JSON object (no markdown, no code fences) with these fields:
 
 Use null for any field you cannot determine with confidence.`;
 
-    const response = await claude.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 500,
-      messages: [{ role: 'user', content: prompt }],
-    });
-
-    const content = response.content[0]?.type === 'text' ? response.content[0].text : '';
-    const parsed = JSON.parse(content.replace(/```json\s*/gi, '').replace(/```/g, '').trim());
-
+    const parsed = await askAI<ClassificationResult>('You are a business classification expert. Return valid JSON only.', prompt);
     return {
       industry: parsed.industry || null,
       category: parsed.category || null,

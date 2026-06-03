@@ -4,14 +4,17 @@ import sharp from 'sharp';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { config } from '../config';
 
-const r2 = new S3Client({
-  region: 'auto',
-  endpoint: `https://${config.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-  credentials: {
-    accessKeyId: config.R2_ACCESS_KEY_ID,
-    secretAccessKey: config.R2_SECRET_ACCESS_KEY,
-  },
-});
+function getR2Client(): S3Client | null {
+  if (!config.R2_ACCOUNT_ID || !config.R2_ACCESS_KEY_ID || !config.R2_SECRET_ACCESS_KEY) return null;
+  return new S3Client({
+    region: 'auto',
+    endpoint: `https://${config.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+    credentials: {
+      accessKeyId: config.R2_ACCESS_KEY_ID,
+      secretAccessKey: config.R2_SECRET_ACCESS_KEY,
+    },
+  });
+}
 
 interface LogoResult {
   url: string;
@@ -51,6 +54,8 @@ async function toPng(buffer: Buffer): Promise<Buffer | null> {
 }
 
 async function uploadToR2(domain: string, buffer: Buffer): Promise<string> {
+  const r2 = getR2Client();
+  if (!r2) return '';
   const key = `logos/${domain}/${randomUUID()}.png`;
   await r2.send(new PutObjectCommand({
     Bucket: config.R2_BUCKET_NAME,

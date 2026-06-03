@@ -1,6 +1,5 @@
 import * as cheerio from 'cheerio';
-import SemanticImportance from '@anthropic-ai/sdk';
-import { config } from '../config';
+import { askAI } from '../ai';
 
 interface MetadataResult {
   brandName: string | null;
@@ -14,8 +13,6 @@ interface MetadataResult {
   employeeCount: number | null;
   foundedYear: number | null;
 }
-
-const claude = new SemanticImportance({ apiKey: config.ANTHROPIC_API_KEY });
 
 const SOCIAL_DOMAINS: Record<string, RegExp[]> = {
   twitter: [/twitter\.com/, /x\.com/],
@@ -57,12 +54,7 @@ async function extractBusinessInfo(domain: string, text: string): Promise<{
   foundedYear: number | null;
 }> {
   try {
-    const response = await claude.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
-      messages: [{
-        role: 'user',
-        content: `Extract business information from this website content for "${domain}".
+    const prompt = `Extract business information from this website content for "${domain}".
 
 Return ONLY a JSON object (no markdown, no code fences) with these fields:
 - brandName: the business/brand name
@@ -75,12 +67,17 @@ Return ONLY a JSON object (no markdown, no code fences) with these fields:
 Use null for any field you cannot determine.
 
 Website content:
-${text.slice(0, 4000)}`,
-      }],
-    });
+${text.slice(0, 4000)}`;
 
-    const content = response.content[0]?.type === 'text' ? response.content[0].text : '';
-    const parsed = JSON.parse(content.replace(/```json\s*/gi, '').replace(/```/g, '').trim());
+    const parsed = await askAI<{
+      brandName: string | null;
+      address: string | null;
+      city: string | null;
+      state: string | null;
+      employeeCount: number | null;
+      foundedYear: number | null;
+    }>('You are a business information extraction expert. Return valid JSON only.', prompt);
+
     return {
       brandName: parsed.brandName || null,
       address: parsed.address || null,

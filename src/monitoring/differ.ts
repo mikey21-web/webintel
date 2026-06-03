@@ -1,6 +1,6 @@
 import { diffWords, Change } from 'diff';
 import { createHash } from 'crypto';
-import { askClaude } from '../ai';
+import { askAI } from '../ai';
 
 export function hashContent(content: string): string {
   return createHash('sha256').update(content).digest('hex');
@@ -24,7 +24,7 @@ export interface ChangeClassification {
 }
 
 export async function classifyChange(diff: string, url: string): Promise<ChangeClassification> {
-  const result = await askClaude<ChangeClassification>(
+  const result = await askAI<ChangeClassification>(
     'You are a change analyst. Classify content changes and determine their significance. Return ONLY valid JSON.',
     `Classify this content diff for URL "${url}":\n\n${diff.slice(0, 6000)}\n\nReturn JSON with: summary, severity (low/medium/high), added (array of key added items), removed (array of key removed items), importantChanges (array of notable changes).`
   ).catch(() => ({
