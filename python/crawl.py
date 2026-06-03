@@ -1,10 +1,13 @@
 import asyncio
+import json
+import re
 from urllib.parse import urlparse, urljoin
 from typing import AsyncGenerator, Optional
-import re
 
 from crawl4ai import AsyncWebCrawler
 from crawl4ai.async_configs import BrowserConfig, CrawlerRunConfig
+
+from engine.orchestrator import ExtractionOrchestrator
 
 
 def _is_same_domain(url: str, base_domain: str) -> bool:
@@ -26,6 +29,8 @@ async def crawl_site(
     base_domain = urlparse(start_url).netloc.replace("www.", "")
     visited: set[str] = set()
     queue: list[tuple[str, int]] = [(start_url, 0)]
+    orch = ExtractionOrchestrator()
+    await orch.init_backends()
 
     browser_cfg = BrowserConfig(headless=True, browser_type="chromium")
     run_cfg = CrawlerRunConfig(
@@ -46,21 +51,23 @@ async def crawl_site(
             visited.add(url)
 
             try:
-                result = await crawler.arun(url=url, config=run_cfg)
-                if not result.success:
-                    continue
-                markdown = result.markdown or ""
+                page_result = await orch.extract(url)
+                if not page_result.html:
+                    crawl_result = await crawler.arun(url=url, config=run_cfg)
+                    if crawl_result.success:
+                        page_result.html = crawl_result.html or ""
+                        page_result.markdown = crawl_result.markdown or ""
 
-                yield f'{{"url":"{url}","markdown":"{markdown.replace(chr(34), chr(92) + chr(34)).replace(chr(10), chr(92) + chr(110)).replace(chr(13), "")}","depth":{depth}}}\n'
+                from fallback import result_to_dict
+                data = result_to_dict(page_result)
+                data["url"] = url
+                data["depth"] = depth
+                yield json.dumps(data) + "\n"
 
-                if depth < max_depth and result.links:
-                    internal_links = result.links.get("internal", []) or []
-                    for link in internal_links:
-                        href = link.get("href", "") if isinstance(link, dict) else getattr(link, "href", "")
-                        if not href:
-                            continue
+                if depth < max_depth and page_result.links_internal:
+                    for href in page_result.links_internal:
                         absolute = urljoin(url, href)
-                        if _is_same_domain(absolute, base_domain) and absolute not in visited:
+                        if absolute not in visited:
                             queue.append((absolute, depth + 1))
             except Exception:
                 continue

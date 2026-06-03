@@ -3,11 +3,12 @@ import SemanticImportance from '@anthropic-ai/sdk';
 import { resolveBrand } from '../brand/resolver';
 import { buildWhatsAppTheme } from '../brand/whatsapp';
 import { config } from '../config';
+import { requireAuth } from '../middleware/auth';
 
 const claude = new SemanticImportance({ apiKey: config.ANTHROPIC_API_KEY });
 
 export async function brandRoutes(app: FastifyInstance) {
-  app.get('/profile', async (req, reply) => {
+  app.get('/profile', { preHandler: requireAuth }, async (req, reply) => {
     try {
       const { domain } = req.query as { domain: string };
       if (!domain) return reply.status(400).send({ error: 'domain query parameter is required' });
@@ -18,7 +19,7 @@ export async function brandRoutes(app: FastifyInstance) {
     }
   });
 
-  app.get('/logo', async (req, reply) => {
+  app.get('/logo', { preHandler: requireAuth }, async (req, reply) => {
     try {
       const { domain } = req.query as { domain: string };
       if (!domain) return reply.status(400).send({ error: 'domain query parameter is required' });
@@ -29,7 +30,7 @@ export async function brandRoutes(app: FastifyInstance) {
     }
   });
 
-  app.get('/colors', async (req, reply) => {
+  app.get('/colors', { preHandler: requireAuth }, async (req, reply) => {
     try {
       const { domain } = req.query as { domain: string };
       if (!domain) return reply.status(400).send({ error: 'domain query parameter is required' });
@@ -40,7 +41,7 @@ export async function brandRoutes(app: FastifyInstance) {
     }
   });
 
-  app.get('/fonts', async (req, reply) => {
+  app.get('/fonts', { preHandler: requireAuth }, async (req, reply) => {
     try {
       const { domain } = req.query as { domain: string };
       if (!domain) return reply.status(400).send({ error: 'domain query parameter is required' });
@@ -52,7 +53,7 @@ export async function brandRoutes(app: FastifyInstance) {
     }
   });
 
-  app.get('/styleguide', async (req, reply) => {
+  app.get('/styleguide', { preHandler: requireAuth }, async (req, reply) => {
     try {
       const { domain } = req.query as { domain: string };
       if (!domain) return reply.status(400).send({ error: 'domain query parameter is required' });
@@ -63,7 +64,7 @@ export async function brandRoutes(app: FastifyInstance) {
     }
   });
 
-  app.get('/socials', async (req, reply) => {
+  app.get('/socials', { preHandler: requireAuth }, async (req, reply) => {
     try {
       const { domain } = req.query as { domain: string };
       if (!domain) return reply.status(400).send({ error: 'domain query parameter is required' });
@@ -75,7 +76,7 @@ export async function brandRoutes(app: FastifyInstance) {
     }
   });
 
-  app.get('/address', async (req, reply) => {
+  app.get('/address', { preHandler: requireAuth }, async (req, reply) => {
     try {
       const { domain } = req.query as { domain: string };
       if (!domain) return reply.status(400).send({ error: 'domain query parameter is required' });
@@ -92,7 +93,7 @@ export async function brandRoutes(app: FastifyInstance) {
     }
   });
 
-  app.get('/techstack', async (req, reply) => {
+  app.get('/techstack', { preHandler: requireAuth }, async (req, reply) => {
     try {
       const { domain } = req.query as { domain: string };
       if (!domain) return reply.status(400).send({ error: 'domain query parameter is required' });
@@ -104,7 +105,7 @@ export async function brandRoutes(app: FastifyInstance) {
     }
   });
 
-  app.get('/whatsapp-theme', async (req, reply) => {
+  app.get('/whatsapp-theme', { preHandler: requireAuth }, async (req, reply) => {
     try {
       const { domain } = req.query as { domain: string };
       if (!domain) return reply.status(400).send({ error: 'domain query parameter is required' });
@@ -116,7 +117,7 @@ export async function brandRoutes(app: FastifyInstance) {
     }
   });
 
-  app.post('/transaction', async (req, reply) => {
+  app.post('/transaction', { preHandler: requireAuth }, async (req, reply) => {
     try {
       const { descriptor } = req.body as { descriptor: string };
       if (!descriptor) return reply.status(400).send({ error: 'descriptor is required in request body' });

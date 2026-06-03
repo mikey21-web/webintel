@@ -1,14 +1,14 @@
 import json
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from fallback import scrape_with_fallback
 from crawl import crawl_site
 
-app = FastAPI(title="WebIntel API", version="1.0.0", docs_url="/docs")
+app = FastAPI(title="WebIntel API", version="2.0.0", docs_url="/docs")
 
 
 class ScrapeRequest(BaseModel):
@@ -29,7 +29,11 @@ class CrawlRequest(BaseModel):
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "service": "webintel"}
+    return {
+        "status": "ok",
+        "service": "webintel",
+        "version": "2.0.0",
+    }
 
 
 @app.post("/scrape")
@@ -41,10 +45,24 @@ async def scrape(req: ScrapeRequest):
             full_page=req.fullPage,
         )
         if result["source"] == "none":
-            raise HTTPException(status_code=502, detail="All scrapers failed")
+            raise HTTPException(status_code=502, detail="All 50 backends failed")
         return result
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/scrape")
+async def scrape_get(url: str = Query(...), screenshot: bool = False):
+    try:
+        result = await scrape_with_fallback(
+            url,
+            screenshot=screenshot,
+        )
+        if result["source"] == "none":
+            raise HTTPException(status_code=502, detail="All backends failed")
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -61,3 +79,21 @@ async def crawl(req: CrawlRequest):
             yield line
 
     return StreamingResponse(event_stream(), media_type="application/x-ndjson")
+
+
+@app.get("/backends")
+async def list_backends():
+    from engine.backends import ALL_BACKENDS
+    return {
+        "total": len(ALL_BACKENDS),
+        "backends": [
+            {
+                "name": cls.name,
+                "priority": cls.priority,
+                "requires_docker": cls.requires_docker,
+                "requires_node": cls.requires_node,
+                "requires_binary": cls.requires_binary,
+            }
+            for cls in ALL_BACKENDS
+        ],
+    }

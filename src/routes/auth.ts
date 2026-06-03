@@ -4,6 +4,8 @@ import { apiKeys, users } from '../db/schema';
 import { hashApiKey } from '../utils/hash';
 import crypto from 'crypto';
 import { eq } from 'drizzle-orm';
+import { requireAuth } from '../middleware/auth';
+import { createScopedToken } from '../utils/jwt';
 
 function generateApiKey(): { raw: string; hash: string; prefix: string } {
   const entropy = crypto.randomBytes(32).toString('hex');
@@ -87,5 +89,40 @@ export async function authRoutes(app: FastifyInstance) {
     await db.update(apiKeys).set({ revoked: true }).where(eq(apiKeys.id, request.params.id));
 
     return reply.send({ message: 'API key revoked' });
+  });
+
+  app.post('/login', async (request, reply) => {
+    const { access_token } = request.body as { access_token?: string };
+    if (!access_token) {
+      return reply.status(400).send({ error: 'access_token is required' });
+    }
+
+    const { verifySupabaseJwt } = await import('../utils/jwt');
+    const payload = await verifySupabaseJwt(access_token);
+    if (!payload || !payload.sub) {
+      return reply.status(401).send({ error: 'Invalid Supabase session token' });
+    }
+
+    const email = payload.email || '';
+    let [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    if (!user) {
+      [user] = await db.insert(users).values({ email, plan: 'pro' }).returning();
+    }
+
+    const scoped = await createScopedToken(user.id, email);
+
+    return reply.send({
+      token: scoped,
+      user: { id: user.id, email: user.email, plan: user.plan },
+      expiresIn: '24h',
+    });
+  });
+
+  app.get('/me', { preHandler: requireAuth }, async (request, reply) => {
+    return reply.send({
+      userId: request.userId,
+      userPlan: request.userPlan,
+      authMethod: request.authMethod,
+    });
   });
 }

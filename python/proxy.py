@@ -3,6 +3,7 @@ from typing import Optional
 
 PROXY_POOL: list[str] = []
 
+
 async def init_proxy_pool(api_key: str = "") -> None:
     global PROXY_POOL
     if api_key:
@@ -15,11 +16,13 @@ async def init_proxy_pool(api_key: str = "") -> None:
         except Exception:
             PROXY_POOL = []
 
+
 async def get_proxy() -> Optional[dict]:
     if not PROXY_POOL:
         return None
     proxy = random.choice(PROXY_POOL)
     return {"http": proxy, "https": proxy}
+
 
 def has_proxies() -> bool:
     return len(PROXY_POOL) > 0
