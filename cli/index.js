@@ -12,7 +12,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const CONFIG_DIR = join(homedir(), '.webintel');
 const CONFIG_PATH = join(CONFIG_DIR, 'config.json');
-const DEFAULT_BASE_URL = 'https://webintel.diyaaaa.in';
+const DEFAULT_BASE_URL = 'https://api.webintel.dev';
 
 function ensureConfigDir() {
   if (!existsSync(CONFIG_DIR)) mkdirSync(CONFIG_DIR, { recursive: true });
@@ -71,7 +71,7 @@ const configCmd = program.command('config').description('Manage WebIntel configu
 
 configCmd.command('set-key')
   .description('Set your WebIntel API key')
-  .argument('<key>', 'API key (sk-...)')
+  .argument('<key>', 'API key (wi_...)')
   .action((key) => {
     const config = loadConfig();
     config.apiKey = key;
@@ -379,9 +379,9 @@ program.command('market')
   .option('-l, --location <location>', 'Filter by location')
   .option('-j, --json', 'Output as JSON')
   .action(async (query, opts) => {
-    const params = new URLSearchParams({ query });
-    if (opts.location) params.set('location', opts.location);
-    const data = await apiFetch(`/v1/market?${params}`, { label: 'Mapping market...' });
+    const body = { keyword: query };
+    if (opts.location) body.location = opts.location;
+    const data = await apiFetch('/v1/intel/market-map', { method: 'POST', body, label: 'Mapping market...' });
     if (opts.json) return printJson(data);
     console.log(`\n${chalk.bold.hex('#6366f1')('Market Map')}: ${query}${opts.location ? ` in ${opts.location}` : ''}`);
     if (data.competitors?.length) {
@@ -400,9 +400,9 @@ program.command('brief')
   .option('-p, --product <product>', 'Your product name for context')
   .option('-j, --json', 'Output as JSON')
   .action(async (domain, opts) => {
-    const params = new URLSearchParams({ domain });
-    if (opts.product) params.set('product', opts.product);
-    const data = await apiFetch(`/v1/brief?${params}`, { label: 'Generating sales brief...' });
+    const body = { targetDomain: domain };
+    if (opts.product) body.yourProduct = opts.product;
+    const data = await apiFetch('/v1/intel/sales-brief', { method: 'POST', body, label: 'Generating sales brief...' });
     if (opts.json) return printJson(data);
     console.log(`\n${chalk.bold.hex('#6366f1')('Sales Brief')}: ${domain}`);
     if (data.companyName) console.log(`  ${chalk.cyan('Company:')}  ${data.companyName}`);
@@ -418,24 +418,11 @@ program.command('brief')
     }
   });
 
-// --- export ---
-program.command('export')
-  .description('Export all data in a format')
-  .option('-f, --format <format>', 'Export format (json, csv)', 'json')
-  .action(async (opts) => {
-    const data = await apiFetch('/v1/export', { label: 'Exporting data...' });
-    if (opts.format === 'json') {
-      printJson(data);
-    } else {
-      console.log(data);
-    }
-  });
-
 // --- credits ---
 program.command('credits')
   .description('Check your WebIntel credit balance')
   .action(async () => {
-    const data = await apiFetch('/v1/credits', { label: 'Checking credits...' });
+    const data = await apiFetch('/v1/billing/balance', { label: 'Checking credits...' });
     console.log(`\n${chalk.bold('Credit Balance')}`);
     console.log(`  ${chalk.cyan('Remaining:')} ${chalk.bold(String(data.credits ?? data.remaining ?? 0))}`);
     if (data.total) console.log(`  ${chalk.cyan('Total:')}    ${data.total}`);

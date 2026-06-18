@@ -38,40 +38,55 @@ func NewClient(opts ...Option) *Client {
 }
 
 func (c *Client) request(method, path string, body any) ([]byte, error) {
-	var reqBody io.Reader
-	if body != nil {
-		b, err := json.Marshal(body)
+	retryable := map[int]bool{429: true, 502: true, 503: true}
+	var lastErr error
+	for attempt := 0; attempt < 3; attempt++ {
+		var reqBody io.Reader
+		if body != nil {
+			b, err := json.Marshal(body)
+			if err != nil {
+				return nil, err
+			}
+			reqBody = bytes.NewReader(b)
+		}
+		req, err := http.NewRequest(method, c.baseURL+path, reqBody)
 		if err != nil {
 			return nil, err
 		}
-		reqBody = bytes.NewReader(b)
-	}
-	req, err := http.NewRequest(method, c.baseURL+path, reqBody)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Authorization", "Bearer "+c.apiKey)
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := c.http.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode >= 400 {
-		var errResp struct {
-			Error string `json:"error"`
+		req.Header.Set("Authorization", "Bearer "+c.apiKey)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("User-Agent", "webintel-go-sdk/0.1.0")
+		resp, err := c.http.Do(req)
+		if err != nil {
+			lastErr = err
+			if attempt < 2 {
+				time.Sleep(time.Duration(1<<attempt) * time.Second)
+				continue
+			}
+			return nil, err
 		}
-		json.Unmarshal(respBody, &errResp)
-		if errResp.Error != "" {
-			return nil, fmt.Errorf("API error %d: %s", resp.StatusCode, errResp.Error)
+		respBody, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			return nil, err
 		}
-		return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
+		if resp.StatusCode >= 400 {
+			if retryable[resp.StatusCode] && attempt < 2 {
+				time.Sleep(time.Duration(1<<attempt) * time.Second)
+				continue
+			}
+			var errResp struct {
+				Error string `json:"error"`
+			}
+			json.Unmarshal(respBody, &errResp)
+			if errResp.Error != "" {
+				return nil, fmt.Errorf("API error %d: %s", resp.StatusCode, errResp.Error)
+			}
+			return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
+		}
+		return respBody, nil
 	}
-	return respBody, nil
+	return nil, lastErr
 }
 
 func (c *Client) get(path string) ([]byte, error) {
@@ -109,11 +124,15 @@ func (c *Client) Scrape(targetURL string, opts ...ScrapeOption) (*ScrapeResult, 
 	for _, opt := range opts {
 		opt(so)
 	}
-	body := map[string]any{
-		"url":      targetURL,
-		"useJs":    so.UseJs,
-		"waitFor":  so.WaitFor,
-		"stealth":  so.Stealth,
+	body := map[string]any{"url": targetURL}
+	if so.UseJs != nil {
+		body["useJs"] = *so.UseJs
+	}
+	if so.WaitFor != nil {
+		body["waitFor"] = *so.WaitFor
+	}
+	if so.Stealth != nil {
+		body["stealth"] = *so.Stealth
 	}
 	b, err := c.post("/v1/web/scrape/markdown", body)
 	if err != nil {
@@ -139,10 +158,13 @@ func (c *Client) ScrapeHTML(targetURL string) (*ScrapeResult, error) {
 	return &result, nil
 }
 
-func (c *Client) Extract(targetURL string, schema map[string]any) (map[string]any, error) {
-	body := map[string]any{
-		"url":    targetURL,
-		"schema": schema,
+func (c *Client) Extract(targetURL string, schema map[string]any, prompt string) (map[string]any, error) {
+	body := map[string]any{"url": targetURL}
+	if schema != nil {
+		body["schema"] = schema
+	}
+	if prompt != "" {
+		body["prompt"] = prompt
 	}
 	b, err := c.post("/v1/web/extract", body)
 	if err != nil {
@@ -155,10 +177,13 @@ func (c *Client) Extract(targetURL string, schema map[string]any) (map[string]an
 	return result, nil
 }
 
-func (c *Client) Crawl(targetURL string, maxPages int) (map[string]any, error) {
-	body := map[string]any{
-		"url":       targetURL,
-		"maxPages":  maxPages,
+func (c *Client) Crawl(targetURL string, maxPages int, webhookUrl string) (map[string]any, error) {
+	body := map[string]any{"url": targetURL}
+	if maxPages > 0 {
+		body["maxPages"] = maxPages
+	}
+	if webhookUrl != "" {
+		body["webhookUrl"] = webhookUrl
 	}
 	b, err := c.post("/v1/web/crawl", body)
 	if err != nil {
@@ -184,9 +209,9 @@ func (c *Client) GetCrawlJob(jobID string) (map[string]any, error) {
 }
 
 func (c *Client) Search(query string, numResults int) (map[string]any, error) {
-	body := map[string]any{
-		"query":     query,
-		"numResults": numResults,
+	body := map[string]any{"query": query}
+	if numResults > 0 {
+		body["numResults"] = numResults
 	}
 	b, err := c.post("/v1/web/search", body)
 	if err != nil {
@@ -326,7 +351,7 @@ func (c *Client) Classify(domain string) (map[string]any, error) {
 }
 
 func (c *Client) LogoURL(domain string) string {
-	return "https://cdn.webintel.dev/logo/" + url.QueryEscape(domain) + ".png"
+	return "https://cdn.webintel.dev/logo/" + domain + ".png"
 }
 
 func (c *Client) Health() (map[string]any, error) {

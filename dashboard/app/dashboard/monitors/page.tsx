@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useSupabase } from '@/components/SupabaseProvider';
 import MonitorCard from '@/components/MonitorCard';
 import AlertFeed from '@/components/AlertFeed';
-import { Plus, Activity } from 'lucide-react';
+import { Plus, Activity, Loader2 } from 'lucide-react';
 
 type Monitor = {
   id: string;
@@ -68,7 +68,13 @@ export default function MonitorsPage() {
     // In a real app, this would call the API
   };
 
-  if (isLoading || !user) return null;
+  if (isLoading || !user) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500" />
+      </div>
+    );
+  }
 
   const selectedData = monitors.find((m) => m.id === selectedMonitor);
 

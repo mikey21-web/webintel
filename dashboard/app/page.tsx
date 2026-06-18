@@ -185,24 +185,24 @@ export default function Home() {
             <div>
               <h5 className="font-semibold text-sm mb-3 dark:text-gray-300">Product</h5>
               <ul className="space-y-2 text-sm text-gray-500 dark:text-gray-400">
-                <li><Link href="/login" className="hover:text-gray-900 dark:hover:text-white transition-colors">Features</Link></li>
-                <li><Link href="/login" className="hover:text-gray-900 dark:hover:text-white transition-colors">Pricing</Link></li>
-                <li><Link href="/login" className="hover:text-gray-900 dark:hover:text-white transition-colors">API</Link></li>
+                <li><Link href="/#features" className="hover:text-gray-900 dark:hover:text-white transition-colors">Features</Link></li>
+                <li><Link href="/#pricing" className="hover:text-gray-900 dark:hover:text-white transition-colors">Pricing</Link></li>
+                <li><Link href="/#api" className="hover:text-gray-900 dark:hover:text-white transition-colors">API</Link></li>
               </ul>
             </div>
             <div>
               <h5 className="font-semibold text-sm mb-3 dark:text-gray-300">Company</h5>
               <ul className="space-y-2 text-sm text-gray-500 dark:text-gray-400">
-                <li><Link href="/login" className="hover:text-gray-900 dark:hover:text-white transition-colors">About</Link></li>
-                <li><Link href="/login" className="hover:text-gray-900 dark:hover:text-white transition-colors">Blog</Link></li>
-                <li><Link href="/login" className="hover:text-gray-900 dark:hover:text-white transition-colors">Contact</Link></li>
+                <li><Link href="/#" className="hover:text-gray-900 dark:hover:text-white transition-colors">About</Link></li>
+                <li><Link href="/#" className="hover:text-gray-900 dark:hover:text-white transition-colors">Blog</Link></li>
+                <li><Link href="/#" className="hover:text-gray-900 dark:hover:text-white transition-colors">Contact</Link></li>
               </ul>
             </div>
             <div>
               <h5 className="font-semibold text-sm mb-3 dark:text-gray-300">Legal</h5>
               <ul className="space-y-2 text-sm text-gray-500 dark:text-gray-400">
-                <li><Link href="/login" className="hover:text-gray-900 dark:hover:text-white transition-colors">Privacy</Link></li>
-                <li><Link href="/login" className="hover:text-gray-900 dark:hover:text-white transition-colors">Terms</Link></li>
+                <li><Link href="/#" className="hover:text-gray-900 dark:hover:text-white transition-colors">Privacy</Link></li>
+                <li><Link href="/#" className="hover:text-gray-900 dark:hover:text-white transition-colors">Terms</Link></li>
               </ul>
             </div>
           </div>

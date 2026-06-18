@@ -86,9 +86,9 @@ export async function createPlan(name: string, amountINR: number, interval: 'mon
 }
 
 export async function verifyPayment(orderId: string, paymentId: string, signature: string): Promise<boolean> {
-  if (!config.RAZORPAY_WEBHOOK_SECRET) return false;
+  if (!config.RAZORPAY_KEY_SECRET) return false;
   const expectedSig = crypto
-    .createHmac('sha256', config.RAZORPAY_WEBHOOK_SECRET)
+    .createHmac('sha256', config.RAZORPAY_KEY_SECRET)
     .update(`${orderId}|${paymentId}`)
     .digest('hex');
   return expectedSig === signature;

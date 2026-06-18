@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { db } from '../db/client';
 import { intelJobs } from '../db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, and } from 'drizzle-orm';
 import { z } from 'zod';
 import { getIntelQueue } from '../queue/setup';
 import { requireAuth } from '../middleware/auth';
@@ -135,7 +135,10 @@ export async function intelRoutes(app: FastifyInstance) {
   });
 
   app.get<{ Params: { jobId: string } }>('/:jobId', { preHandler: [requireAuth] }, async (req, reply) => {
-    const [job] = await db.select().from(intelJobs).where(eq(intelJobs.id, req.params.jobId));
+    const [job] = await db.select().from(intelJobs).where(and(
+      eq(intelJobs.id, req.params.jobId),
+      eq(intelJobs.apiKeyId, req.apiKeyId!)
+    ));
     if (!job) return reply.status(404).send({ error: 'Job not found' });
     return job;
   });

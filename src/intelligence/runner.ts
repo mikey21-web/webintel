@@ -12,7 +12,19 @@ import { runCompare } from './modules/compare';
 import { runEnrich } from './modules/enrich';
 import crypto from 'crypto';
 
+function validateWebhookUrl(url: string): void {
+  const parsed = new URL(url);
+  if (parsed.protocol !== 'https:') throw new Error('Webhook URL must use HTTPS');
+  const hostname = parsed.hostname.toLowerCase();
+  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') throw new Error('Webhook URL must not point to localhost or loopback');
+  if (hostname.startsWith('10.')) throw new Error('Webhook URL must not point to private IP range');
+  if (hostname.startsWith('172.') && /^172\.(1[6-9]|2\d|3[01])\./.test(hostname)) throw new Error('Webhook URL must not point to private IP range');
+  if (hostname.startsWith('192.168.')) throw new Error('Webhook URL must not point to private IP range');
+  if (hostname.startsWith('169.254.')) throw new Error('Webhook URL must not point to link-local range');
+}
+
 async function deliverWebhook(url: string, payload: any, jobId: string) {
+  validateWebhookUrl(url);
   const signature = crypto.createHmac('sha256', config.WEBHOOK_SECRET || 'webintel-webhook-secret').update(JSON.stringify(payload)).digest('hex');
   for (let i = 0; i < 3; i++) {
     try {

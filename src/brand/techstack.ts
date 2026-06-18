@@ -13,7 +13,7 @@ interface TechSignature {
 }
 
 const TECH_SIGNATURES: TechSignature[] = [
-  { name: 'React', category: 'framework', regex: /react(\.js|\.development\.js)?["\']?[\)>]|data-reactroot|__NEXT_DATA__/i },
+  { name: 'React', category: 'framework', regex: /react(\.js|\.development\.js)?["\']?[\)>]|data-reactroot/i },
   { name: 'Next.js', category: 'framework', regex: /__NEXT_DATA__|next\.js|\.next\/static/i },
   { name: 'Vue.js', category: 'framework', regex: /vue(\.js|\.runtime)?["\']?[\)>]|__VUE__|data-v-/i },
   { name: 'Nuxt.js', category: 'framework', regex: /__NUXT__|nuxt\.js/i },

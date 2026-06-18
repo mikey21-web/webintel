@@ -44,7 +44,7 @@ class ScrapyBackend(BaseBackend):
 
     async def scrape(self, url: str, **kwargs) -> Optional[ScrapeResult]:
         import scrapy
-        from scrapy.crawler import CrawlerProcess
+        from scrapy.crawler import CrawlerRunner
         from scrapy.utils.project import get_project_settings
         try:
             results = []
@@ -99,13 +99,8 @@ class ScrapyBackend(BaseBackend):
                 settings.set("SCHEDULER_PERSIST", True)
                 settings.set("REDIS_URL", self.redis_url)
 
-            process = CrawlerProcess(settings)
-            await asyncio.get_event_loop().run_in_executor(
-                None, lambda: process.crawl(spider_cls)
-            )
-            await asyncio.get_event_loop().run_in_executor(
-                None, lambda: process.start()
-            )
+            runner = CrawlerRunner(settings)
+            await runner.crawl(spider_cls)
             if results:
                 sr = ScrapeResult(url=url, html=results[0]["html"], source=self.name)
                 sr.title = results[0]["title"]

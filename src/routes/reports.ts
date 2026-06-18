@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { db } from '../db/client';
-import { intelJobs, reports } from '../db/schema';
+import { intelJobs, reports, apiKeys } from '../db/schema';
 import { eq, desc, and } from 'drizzle-orm';
 import { z } from 'zod';
 import { generateReport } from '../reports/generator';
@@ -13,7 +13,19 @@ const generateSchema = z.object({
 export async function reportsRoutes(app: FastifyInstance) {
   app.post('/generate', { preHandler: requireAuth }, async (req, reply) => {
     const { jobId } = generateSchema.parse(req.body);
-    const [job] = await db.select().from(intelJobs).where(eq(intelJobs.id, jobId));
+    const [job] = await db
+      .select({
+        id: intelJobs.id,
+        module: intelJobs.module,
+        status: intelJobs.status,
+        result: intelJobs.result,
+      })
+      .from(intelJobs)
+      .innerJoin(apiKeys, eq(intelJobs.apiKeyId, apiKeys.id))
+      .where(and(
+        eq(intelJobs.id, jobId),
+        eq(apiKeys.userId, req.userId!)
+      ));
     if (!job) return reply.status(404).send({ error: 'Job not found' });
     if (job.status !== 'done') return reply.status(400).send({ error: 'Job not completed' });
 

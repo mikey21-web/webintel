@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, boolean, integer, jsonb, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, boolean, integer, jsonb, timestamp, index } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
 export const users = pgTable('users', {
@@ -181,6 +181,21 @@ export const crawlJobs = pgTable('crawl_jobs', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
   completedAt: timestamp('completed_at', { withTimezone: true }),
 });
+
+export const apiKeysUserIdIdx = index('idx_api_keys_user_id').on(apiKeys.userId);
+export const subscriptionsUserIdIdx = index('idx_subscriptions_user_id').on(subscriptions.userId);
+export const subscriptionsPlanIdIdx = index('idx_subscriptions_plan_id').on(subscriptions.planId);
+export const paymentsUserIdIdx = index('idx_payments_user_id').on(payments.userId);
+export const paymentsSubscriptionIdIdx = index('idx_payments_subscription_id').on(payments.subscriptionId);
+export const usageLogsApiKeyIdIdx = index('idx_usage_logs_api_key_id').on(usageLogs.apiKeyId);
+export const intelJobsApiKeyIdIdx = index('idx_intel_jobs_api_key_id').on(intelJobs.apiKeyId);
+export const monitorsUserIdIdx = index('idx_monitors_user_id').on(monitors.userId);
+export const monitorSnapshotsMonitorIdIdx = index('idx_monitor_snapshots_monitor_id').on(monitorSnapshots.monitorId);
+export const monitorAlertsMonitorIdIdx = index('idx_monitor_alerts_monitor_id').on(monitorAlerts.monitorId);
+export const reportsUserIdIdx = index('idx_reports_user_id').on(reports.userId);
+export const reportsIntelJobIdIdx = index('idx_reports_intel_job_id').on(reports.intelJobId);
+export const crawlJobsApiKeyIdIdx = index('idx_crawl_jobs_api_key_id').on(crawlJobs.apiKeyId);
+export const creditBalancesUserIdIdx = index('idx_credit_balances_user_id').on(creditBalances.userId);
 
 export type User = typeof users.$inferSelect;
 export type ApiKey = typeof apiKeys.$inferSelect;

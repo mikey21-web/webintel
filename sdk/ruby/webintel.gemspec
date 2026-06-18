@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = "webintel"
-  s.version     = "0.1.0"
+  s.version     = "1.0.0"
   s.summary     = "WebIntel API client — domain intelligence, web scraping, brand data"
   s.description = "Ruby client for the WebIntel API"
   s.authors     = ["WebIntel"]

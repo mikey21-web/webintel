@@ -12,6 +12,7 @@ import { askAI } from '../ai';
 import { searchGoogle } from '../scraping/search';
 import { eq, sql } from 'drizzle-orm';
 import crypto from 'crypto';
+import { sanitizeError } from '../utils/errors';
 
 const CREDIT_COST = { scrape: 5, sitemap: 10, screenshot: 8, crawl: 25, extract: 15, query: 3 };
 
@@ -48,7 +49,7 @@ export async function webRoutes(app: FastifyInstance) {
           return reply.send(data);
         } catch (err: any) {
           recordUsage(request, `scrape/${format}`, 0, 500, start, url);
-          return reply.status(502).send({ error: `Scrape failed: ${err.message}` });
+          return reply.status(502).send({ error: `Scrape failed: ${sanitizeError(err)}` });
         }
       },
     );
@@ -73,7 +74,7 @@ export async function webRoutes(app: FastifyInstance) {
         return reply.send({ urls, count: urls.length, source: url });
       } catch (err: any) {
         recordUsage(request, 'sitemap', 0, 500, start, url);
-        return reply.status(502).send({ error: `Sitemap fetch failed: ${err.message}` });
+        return reply.status(502).send({ error: `Sitemap fetch failed: ${sanitizeError(err)}` });
       }
     },
   );
@@ -100,7 +101,7 @@ export async function webRoutes(app: FastifyInstance) {
         });
       } catch (err: any) {
         recordUsage(request, 'screenshot', 0, 500, start, url);
-        return reply.status(502).send({ error: `Screenshot failed: ${err.message}` });
+        return reply.status(502).send({ error: `Screenshot failed: ${sanitizeError(err)}` });
       }
     },
   );
@@ -186,7 +187,7 @@ export async function webRoutes(app: FastifyInstance) {
         sendEvent('complete', { pagesCrawled, status: 'done' });
         recordUsage(request, 'crawl/stream', CREDIT_COST.crawl, 200, start, url);
       } catch (err: any) {
-        sendEvent('error', { error: err.message, status: 'failed' });
+        sendEvent('error', { error: sanitizeError(err), status: 'failed' });
         recordUsage(request, 'crawl/stream', 0, 500, start, url);
       }
 
@@ -239,7 +240,7 @@ export async function webRoutes(app: FastifyInstance) {
         return reply.send({ url, extracted, metadata: result.metadata });
       } catch (err: any) {
         recordUsage(request, 'extract', 0, 500, start, url);
-        return reply.status(502).send({ error: `Extraction failed: ${err.message}` });
+        return reply.status(502).send({ error: `Extraction failed: ${sanitizeError(err)}` });
       }
     },
   );
@@ -259,7 +260,7 @@ export async function webRoutes(app: FastifyInstance) {
         return reply.send({ url, question, answer, metadata: result.metadata });
       } catch (err: any) {
         recordUsage(request, 'query', 0, 500, start, url);
-        return reply.status(502).send({ error: `Query failed: ${err.message}` });
+        return reply.status(502).send({ error: `Query failed: ${sanitizeError(err)}` });
       }
     },
   );
@@ -278,7 +279,7 @@ export async function webRoutes(app: FastifyInstance) {
         return reply.send({ query, results, totalResults: results.length });
       } catch (err: any) {
         recordUsage(request, 'search', 0, 500, start, query);
-        return reply.status(502).send({ error: `Search failed: ${err.message}` });
+        return reply.status(502).send({ error: `Search failed: ${sanitizeError(err)}` });
       }
     },
   );
@@ -308,7 +309,7 @@ export async function webRoutes(app: FastifyInstance) {
         });
       } catch (err: any) {
         recordUsage(request, 'naics', 0, 500, start, domain || name);
-        return reply.status(502).send({ error: `NAICS lookup failed: ${err.message}` });
+        return reply.status(502).send({ error: `NAICS lookup failed: ${sanitizeError(err)}` });
       }
     },
   );
@@ -340,7 +341,7 @@ export async function webRoutes(app: FastifyInstance) {
         });
       } catch (err: any) {
         recordUsage(request, 'sic', 0, 500, start, domain || name);
-        return reply.status(502).send({ error: `SIC lookup failed: ${err.message}` });
+        return reply.status(502).send({ error: `SIC lookup failed: ${sanitizeError(err)}` });
       }
     },
   );
@@ -396,7 +397,7 @@ export async function webRoutes(app: FastifyInstance) {
         return reply.send({ url, product, metadata: result.metadata });
       } catch (err: any) {
         recordUsage(request, 'extract-product', 0, 500, start, url);
-        return reply.status(502).send({ error: `Product extraction failed: ${err.message}` });
+        return reply.status(502).send({ error: `Product extraction failed: ${sanitizeError(err)}` });
       }
     },
   );
@@ -445,7 +446,7 @@ export async function webRoutes(app: FastifyInstance) {
         return reply.send({ domain, products, totalFound: products.length });
       } catch (err: any) {
         recordUsage(request, 'extract-products', 0, 500, start, domain);
-        return reply.status(502).send({ error: `Product sweep failed: ${err.message}` });
+        return reply.status(502).send({ error: `Product sweep failed: ${sanitizeError(err)}` });
       }
     },
   );

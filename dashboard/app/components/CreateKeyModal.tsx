@@ -13,6 +13,7 @@ export default function CreateKeyModal({ onClose, onCreated }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [createdKey, setCreatedKey] = useState<string | null>(null);
+  const [createdKeyData, setCreatedKeyData] = useState<any>(null);
   const [copied, setCopied] = useState(false);
   const [acknowledged, setAcknowledged] = useState(false);
 
@@ -36,6 +37,7 @@ export default function CreateKeyModal({ onClose, onCreated }: Props) {
 
       const data = await res.json();
       setCreatedKey(data.key || data.apiKey);
+      setCreatedKeyData(data);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -53,7 +55,14 @@ export default function CreateKeyModal({ onClose, onCreated }: Props) {
 
   const handleDone = () => {
     if (!acknowledged) return;
-    onCreated({ id: 'temp', name: name.trim(), prefix: createdKey?.slice(0, 8) || '', created_at: new Date().toISOString(), last_used_at: null, status: 'active' });
+    onCreated({
+      id: createdKeyData?.id || createdKeyData?.key_id || 'temp',
+      name: createdKeyData?.name || name.trim(),
+      prefix: (createdKeyData?.key || createdKeyData?.apiKey || '').slice(0, 8),
+      created_at: createdKeyData?.created_at || new Date().toISOString(),
+      last_used_at: null,
+      status: 'active',
+    });
   };
 
   return (

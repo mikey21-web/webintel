@@ -15,7 +15,7 @@ interface MetadataResult {
 }
 
 const SOCIAL_DOMAINS: Record<string, RegExp[]> = {
-  twitter: [/twitter\.com/, /x\.com/],
+  twitter: [/twitter\.com/, /(?:^|[\/.])x\.com/],
   linkedin: [/linkedin\.com/],
   instagram: [/instagram\.com/],
   facebook: [/facebook\.com/, /fb\.com/],
@@ -23,8 +23,8 @@ const SOCIAL_DOMAINS: Record<string, RegExp[]> = {
   whatsapp: [/wa\.me/, /whatsapp\.com/],
 };
 
-const GST_REGEX = /\b\d{2}[A-Z]{5}\d{4}[A-Z]{1}\d[Z]{1}[A-Z\d]{1}\b/;
-const PINCODE_REGEX = /\b\d{6}\b/;
+const GST_REGEX = /\b\d{2}[A-Z]{5}\d{4}[A-Z]{1}\d[ZC][A-Z\d]{1}\b/;
+const PINCODE_REGEX = /\b[1-8]\d{5}\b/;
 
 function extractSocials($: cheerio.CheerioAPI): Record<string, string | null> {
   const socials: Record<string, string | null> = {

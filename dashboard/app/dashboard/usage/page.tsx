@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSupabase } from '@/components/SupabaseProvider';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Download, Calendar } from 'lucide-react';
+import { Download, Calendar, Loader2 } from 'lucide-react';
 
 type UsageEntry = {
   id: string;
@@ -84,7 +84,13 @@ export default function UsagePage() {
     URL.revokeObjectURL(url);
   }, [rawData]);
 
-  if (isLoading || !user) return null;
+  if (isLoading || !user) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500" />
+      </div>
+    );
+  }
 
   return (
     <div>

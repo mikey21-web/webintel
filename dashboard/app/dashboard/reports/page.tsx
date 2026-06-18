@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSupabase } from '@/components/SupabaseProvider';
 import ReportCard from '@/components/ReportCard';
-import { FileText, RefreshCw } from 'lucide-react';
+import { FileText, RefreshCw, Loader2 } from 'lucide-react';
 
 type Report = {
   id: string;
@@ -72,12 +72,25 @@ export default function ReportsPage() {
     if (!report) return;
     const win = window.open('', '_blank');
     if (!win) return;
-    win.document.write(`<html><head><title>${report.title}</title><style>body{font-family:sans-serif;padding:40px;max-width:800px;margin:auto}pre{background:#f5f5f5;padding:16px;border-radius:8px;overflow:auto}</style></head><body><h1>${report.title}</h1><p>${report.type} — ${report.date}</p><pre>${JSON.stringify(report.data, null, 2)}</pre></body></html>`);
+    win.document.write('<!DOCTYPE html><html><head><title></title><style>body{font-family:sans-serif;padding:40px;max-width:800px;margin:auto}pre{background:#f5f5f5;padding:16px;border-radius:8px;overflow:auto}</style></head><body><h1></h1><p></p><pre></pre></body></html>');
+    win.document.title = report.title;
+    const h1 = win.document.querySelector('h1');
+    const p = win.document.querySelector('p');
+    const pre = win.document.querySelector('pre');
+    if (h1) h1.textContent = report.title;
+    if (p) p.textContent = `${report.type} — ${report.date}`;
+    if (pre) pre.textContent = JSON.stringify(report.data, null, 2);
     win.document.close();
     win.print();
   };
 
-  if (isLoading || !user) return null;
+  if (isLoading || !user) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500" />
+      </div>
+    );
+  }
 
   return (
     <div>

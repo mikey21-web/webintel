@@ -10,7 +10,7 @@ import chalk from "chalk";
 import "dotenv/config";
 import * as http from "http";
 
-const API_BASE = process.env.WEBINTEL_API_URL || "http://localhost:3456";
+const API_BASE = process.env.WEBINTEL_API_URL || "https://api.webintel.dev";
 
 const toolDocs = {
   webintel_search_docs: {
@@ -246,6 +246,26 @@ function searchDocs(query) {
     : [{ id: "none", title: "No results", snippet: `No docs found matching "${query}". Try: overview, scrape, extract, crawl, brand, intel, health` }];
 }
 
+async function fetchWithRetry(url, options = {}) {
+  const delays = [1000, 1000];
+  for (let attempt = 0; attempt <= 2; attempt++) {
+    try {
+      const res = await fetch(url, { ...options, signal: AbortSignal.timeout(30000) });
+      if ((res.status === 429 || res.status === 502 || res.status === 503 || res.status === 504) && attempt < 2) {
+        await new Promise(r => setTimeout(r, delays[attempt]));
+        continue;
+      }
+      return res;
+    } catch (e) {
+      if (attempt < 2) {
+        await new Promise(r => setTimeout(r, delays[attempt]));
+        continue;
+      }
+      throw e;
+    }
+  }
+}
+
 async function callAPI(action, params, apiKey) {
   const headers = { "Content-Type": "application/json" };
   if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
@@ -254,7 +274,7 @@ async function callAPI(action, params, apiKey) {
     scrape: () => {
       const { url, waitFor, useJs, stealth } = params;
       if (!url) throw new Error("params.url is required for scrape");
-      return fetch(`${API_BASE}/v1/web/scrape/markdown`, {
+      return fetchWithRetry(`${API_BASE}/v1/web/scrape/markdown`, {
         method: "POST",
         headers,
         body: JSON.stringify({ url, waitFor, useJs, stealth }),
@@ -263,7 +283,7 @@ async function callAPI(action, params, apiKey) {
     extract: () => {
       const { url, prompt } = params;
       if (!url) throw new Error("params.url is required for extract");
-      return fetch(`${API_BASE}/v1/web/extract`, {
+      return fetchWithRetry(`${API_BASE}/v1/web/extract`, {
         method: "POST",
         headers,
         body: JSON.stringify({ url, prompt }),
@@ -272,7 +292,7 @@ async function callAPI(action, params, apiKey) {
     crawl: () => {
       const { url, maxPages, webhookUrl, wait } = params;
       if (!url) throw new Error("params.url is required for crawl");
-      return fetch(`${API_BASE}/v1/web/crawl`, {
+      return fetchWithRetry(`${API_BASE}/v1/web/crawl`, {
         method: "POST",
         headers,
         body: JSON.stringify({ url, maxPages, webhookUrl, wait }),
@@ -282,18 +302,18 @@ async function callAPI(action, params, apiKey) {
       const { domain, endpoint } = params;
       if (!domain) throw new Error("params.domain is required for brand");
       const ep = endpoint || "profile";
-      return fetch(`${API_BASE}/v1/brand/${ep}?domain=${encodeURIComponent(domain)}`, { headers });
+      return fetchWithRetry(`${API_BASE}/v1/brand/${ep}?domain=${encodeURIComponent(domain)}`, { headers });
     },
     search: () => {
       const { query, numResults } = params;
       if (!query) throw new Error("params.query is required for search");
-      return fetch(`${API_BASE}/v1/web/query`, {
+      return fetchWithRetry(`${API_BASE}/v1/web/search`, {
         method: "POST",
         headers,
-        body: JSON.stringify({ url: `https://www.google.com/search?q=${encodeURIComponent(query)}`, question: `Return the top ${numResults || 10} search results with title, snippet, and URL` }),
+        body: JSON.stringify({ query, numResults: numResults || 10 }),
       });
     },
-    health: () => fetch(`${API_BASE}/health`, { headers }),
+    health: () => fetchWithRetry(`${API_BASE}/health`, { headers }),
   };
 
   const handler = routes[action];
@@ -337,7 +357,7 @@ async function handleToolCall(name, args, apiKey) {
     if (name === "webintel_execute") {
       const action = args?.action;
       const params = args?.params || {};
-      const effectiveKey = args?.apiKey || apiKey;
+      const effectiveKey = args?.apiKey || apiKey || process.env.WEBINTEL_API_KEY;
 
       if (!action) {
         return { content: [{ type: "text", text: "Missing required parameter: action" }], isError: true };

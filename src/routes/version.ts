@@ -10,9 +10,21 @@ export async function versionRoutes(app: FastifyInstance) {
     '/:monitorId',
     { preHandler: [requireAuth] },
     async (request, reply) => {
-      const snapshots = await db.select()
+      const snapshots = await db
+        .select({
+          id: monitorSnapshots.id,
+          monitorId: monitorSnapshots.monitorId,
+          url: monitorSnapshots.url,
+          contentHash: monitorSnapshots.contentHash,
+          content: monitorSnapshots.content,
+          capturedAt: monitorSnapshots.capturedAt,
+        })
         .from(monitorSnapshots)
-        .where(eq(monitorSnapshots.monitorId, request.params.monitorId))
+        .innerJoin(monitors, eq(monitorSnapshots.monitorId, monitors.id))
+        .where(and(
+          eq(monitorSnapshots.monitorId, request.params.monitorId),
+          eq(monitors.userId, request.userId!)
+        ))
         .orderBy(desc(monitorSnapshots.capturedAt))
         .limit(50);
 
@@ -34,19 +46,39 @@ export async function versionRoutes(app: FastifyInstance) {
     '/:monitorId/diff/:fromId/:toId',
     { preHandler: [requireAuth] },
     async (request, reply) => {
-      const [fromSnap] = await db.select()
+      const [fromSnap] = await db
+        .select({
+          id: monitorSnapshots.id,
+          monitorId: monitorSnapshots.monitorId,
+          url: monitorSnapshots.url,
+          contentHash: monitorSnapshots.contentHash,
+          content: monitorSnapshots.content,
+          capturedAt: monitorSnapshots.capturedAt,
+        })
         .from(monitorSnapshots)
+        .innerJoin(monitors, eq(monitorSnapshots.monitorId, monitors.id))
         .where(and(
           eq(monitorSnapshots.id, request.params.fromId),
           eq(monitorSnapshots.monitorId, request.params.monitorId),
+          eq(monitors.userId, request.userId!)
         ))
         .limit(1);
 
-      const [toSnap] = await db.select()
+      const [toSnap] = await db
+        .select({
+          id: monitorSnapshots.id,
+          monitorId: monitorSnapshots.monitorId,
+          url: monitorSnapshots.url,
+          contentHash: monitorSnapshots.contentHash,
+          content: monitorSnapshots.content,
+          capturedAt: monitorSnapshots.capturedAt,
+        })
         .from(monitorSnapshots)
+        .innerJoin(monitors, eq(monitorSnapshots.monitorId, monitors.id))
         .where(and(
           eq(monitorSnapshots.id, request.params.toId),
           eq(monitorSnapshots.monitorId, request.params.monitorId),
+          eq(monitors.userId, request.userId!)
         ))
         .limit(1);
 
@@ -75,9 +107,21 @@ export async function versionRoutes(app: FastifyInstance) {
     '/:monitorId/latest',
     { preHandler: [requireAuth] },
     async (request, reply) => {
-      const snapshots = await db.select()
+      const snapshots = await db
+        .select({
+          id: monitorSnapshots.id,
+          monitorId: monitorSnapshots.monitorId,
+          url: monitorSnapshots.url,
+          contentHash: monitorSnapshots.contentHash,
+          content: monitorSnapshots.content,
+          capturedAt: monitorSnapshots.capturedAt,
+        })
         .from(monitorSnapshots)
-        .where(eq(monitorSnapshots.monitorId, request.params.monitorId))
+        .innerJoin(monitors, eq(monitorSnapshots.monitorId, monitors.id))
+        .where(and(
+          eq(monitorSnapshots.monitorId, request.params.monitorId),
+          eq(monitors.userId, request.userId!)
+        ))
         .orderBy(desc(monitorSnapshots.capturedAt))
         .limit(2);
 
@@ -123,9 +167,22 @@ export async function versionRoutes(app: FastifyInstance) {
     '/:monitorId/alerts',
     { preHandler: [requireAuth] },
     async (request, reply) => {
-      const alerts = await db.select()
+      const alerts = await db
+        .select({
+          id: monitorAlerts.id,
+          monitorId: monitorAlerts.monitorId,
+          url: monitorAlerts.url,
+          diffSummary: monitorAlerts.diffSummary,
+          severity: monitorAlerts.severity,
+          seen: monitorAlerts.seen,
+          createdAt: monitorAlerts.createdAt,
+        })
         .from(monitorAlerts)
-        .where(eq(monitorAlerts.monitorId, request.params.monitorId))
+        .innerJoin(monitors, eq(monitorAlerts.monitorId, monitors.id))
+        .where(and(
+          eq(monitorAlerts.monitorId, request.params.monitorId),
+          eq(monitors.userId, request.userId!)
+        ))
         .orderBy(desc(monitorAlerts.createdAt))
         .limit(50);
 

@@ -89,9 +89,12 @@ class RequestsHTMLBackend(BaseBackend):
         try:
             def _fetch():
                 session = HTMLSession()
-                resp = session.get(url)
-                resp.html.render(timeout=30, sleep=2)
-                return resp.html.html
+                try:
+                    resp = session.get(url)
+                    resp.html.render(timeout=30, sleep=2)
+                    return resp.html.html
+                finally:
+                    session.close()
             html = await asyncio.get_event_loop().run_in_executor(None, _fetch)
             return ScrapeResult(url=url, html=html, source=self.name)
         except Exception:

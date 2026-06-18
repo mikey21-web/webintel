@@ -7,7 +7,7 @@ export function setupRequestLogger(app: FastifyInstance) {
       method: request.method,
       url: request.url,
       status: reply.statusCode,
-      duration: (reply as any).elapsedTime ?? 0,
+      duration: reply.elapsedTime ?? 0,
       apiKeyId: (request as any).apiKeyId || 'anon',
       userId: (request as any).userId || 'anon',
     }));

@@ -20,7 +20,7 @@ const config: Config = {
         },
       },
       fontFamily: {
-        mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+        mono: ['var(--font-mono)', 'Fira Code', 'monospace'],
       },
       animation: {
         'fade-in': 'fadeIn 0.3s ease-in-out',

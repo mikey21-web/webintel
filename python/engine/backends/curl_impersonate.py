@@ -20,7 +20,6 @@ class CurlImpersonateBackend(BaseBackend):
                 "-s", "-o", "-",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
-                timeout=30,
             )
             stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=30)
             if stdout:

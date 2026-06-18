@@ -8,6 +8,7 @@ import {
   verifyWebhookSignature, getPayment, CREDIT_PACKS, SUBSCRIPTION_PLANS,
 } from '../billing/razorpay';
 import { config } from '../config';
+import { sanitizeError } from '../utils/errors';
 
 export async function billingRoutes(app: FastifyInstance) {
   app.get('/plans', async () => {
@@ -38,12 +39,12 @@ export async function billingRoutes(app: FastifyInstance) {
           credits: String(pack.credits),
         });
 
-        await db.insert(subscriptions).values({
+        await db.insert(payments).values({
           userId: request.userId!,
-          planId: '00000000-0000-0000-0000-000000000000',
           razorpayOrderId: order.id,
-          status: 'created',
-          creditsGranted: 0,
+          amountINR: pack.priceINR,
+          creditsPurchased: pack.credits,
+          status: 'pending',
         } as any);
 
         return {
@@ -55,7 +56,7 @@ export async function billingRoutes(app: FastifyInstance) {
           description: `${pack.credits.toLocaleString()} credits`,
         };
       } catch (err: any) {
-        return reply.status(500).send({ error: `Failed to create order: ${err.message}` });
+        return reply.status(500).send({ error: `Failed to create order: ${sanitizeError(err)}` });
       }
     },
   );
@@ -67,6 +68,9 @@ export async function billingRoutes(app: FastifyInstance) {
       const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = request.body;
 
       try {
+        const [existingPayment] = await db.select().from(payments).where(eq(payments.razorpayPaymentId, razorpay_payment_id)).limit(1);
+        if (existingPayment) return reply.status(200).send({ status: 'ok', creditsGranted: 0, amountINR: 0, alreadyProcessed: true });
+
         const isValid = await verifyPayment(razorpay_order_id, razorpay_payment_id, razorpay_signature);
         if (!isValid) return reply.status(400).send({ error: 'Invalid payment signature' });
 
@@ -95,7 +99,7 @@ export async function billingRoutes(app: FastifyInstance) {
 
         return { status: 'ok', creditsGranted: credits, amountINR };
       } catch (err: any) {
-        return reply.status(500).send({ error: `Payment verification failed: ${err.message}` });
+        return reply.status(500).send({ error: `Payment verification failed: ${sanitizeError(err)}` });
       }
     },
   );
@@ -141,7 +145,7 @@ export async function billingRoutes(app: FastifyInstance) {
           planName: plan.name,
         };
       } catch (err: any) {
-        return reply.status(500).send({ error: `Failed to create subscription: ${err.message}` });
+        return reply.status(500).send({ error: `Failed to create subscription: ${sanitizeError(err)}` });
       }
     },
   );
@@ -165,7 +169,9 @@ export async function billingRoutes(app: FastifyInstance) {
 
         const userId = payment.notes?.userId;
         if (userId) {
-          const credits = parseInt(payment.notes?.credits || String(amountINR * 10), 10);
+          const creditsStr = payment.notes?.credits;
+          let credits = creditsStr ? parseInt(creditsStr, 10) : Math.round(amountINR * 10);
+          if (isNaN(credits)) credits = Math.round(amountINR * 10);
           await db.insert(creditBalances).values({
             userId,
             creditsRemaining: credits,

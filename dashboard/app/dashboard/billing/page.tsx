@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSupabase } from '@/components/SupabaseProvider';
 import CreditsGauge from '@/components/CreditsGauge';
-import { Check, Sparkles } from 'lucide-react';
+import { Check, Sparkles, Loader2 } from 'lucide-react';
 
 const plans = [
   { name: 'Free', price: '$0', credits: '100/mo', popular: false, features: ['Basic monitoring', '1 competitor', 'Daily updates', 'Email alerts', '7-day history'] },
@@ -21,7 +21,13 @@ export default function BillingPage() {
     if (!isLoading && !user) router.replace('/login');
   }, [user, isLoading, router]);
 
-  if (isLoading || !user) return null;
+  if (isLoading || !user) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500" />
+      </div>
+    );
+  }
 
   return (
     <div>

@@ -5,6 +5,8 @@ import { extractColors } from './colors';
 import { extractMetadata } from './metadata';
 import { detectTechstack } from './techstack';
 import { classifyBusiness } from './classify';
+import { buildWhatsAppTheme } from './whatsapp';
+import type { WhatsAppTheme } from './whatsapp';
 
 function addDays(date: Date, days: number): Date {
   const d = new Date(date);
@@ -25,6 +27,10 @@ export async function fetchBrand(domain: string) {
   const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
   if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.status}`);
 
+  const contentLength = res.headers.get('content-length');
+  if (contentLength && parseInt(contentLength, 10) > 2_000_000) {
+    throw new Error(`Response too large: ${contentLength} bytes`);
+  }
   const html = await res.text();
   const $ = load(html);
   const bodyText = $('body').text().replace(/\s+/g, ' ').trim().slice(0, 5000);
@@ -64,7 +70,7 @@ export async function fetchBrand(domain: string) {
     pincode: metadata.pincode || null,
     gstNumber: metadata.gstin || null,
     socials: metadata.socials || {},
-    waTheme: {},
+    waTheme: buildWhatsAppTheme(colors.primary, logo?.cdnUrl || null),
     employeeCount: metadata.employeeCount != null ? String(metadata.employeeCount) : null,
     foundedYear: metadata.foundedYear,
     techStack: techstack,

@@ -28,33 +28,40 @@ export default function SupabaseProvider({ children }: { children: React.ReactNo
   const [isLoading, setIsLoading] = useState(true);
   const [credits, setCredits] = useState({ total: 0, remaining: 0 });
 
-  const refreshCredits = useCallback(async () => {
+  const refreshCredits = useCallback(async (signal?: AbortSignal) => {
     try {
-      const res = await fetch('/api/webintel?path=v1/usage');
+      const res = await fetch('/api/webintel?path=v1/usage', { signal });
       if (res.ok) {
         const data = await res.json();
         setCredits({ total: data.total ?? 0, remaining: data.remaining ?? 0 });
       }
     } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
       console.error('Failed to fetch credits:', err);
     }
   }, []);
 
   useEffect(() => {
+    const controller = new AbortController();
+
     supabase.auth.getSession().then(({ data: { session: s } }) => {
+      if (controller.signal.aborted) return;
       setSession(s);
       setUser(s?.user ?? null);
       setIsLoading(false);
-      if (s) refreshCredits();
+      if (s) refreshCredits(controller.signal);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
       setUser(s?.user ?? null);
-      if (s) refreshCredits();
+      if (s) refreshCredits(controller.signal);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      controller.abort();
+      subscription.unsubscribe();
+    };
   }, [supabase, refreshCredits]);
 
   return (

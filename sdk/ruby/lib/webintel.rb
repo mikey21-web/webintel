@@ -6,22 +6,36 @@ class WebIntel
   def initialize(api_key, base_url = "https://api.webintel.dev")
     @api_key = api_key
     self.class.base_uri(base_url)
-    self.class.headers("Authorization" => "Bearer #{api_key}", "Content-Type" => "application/json")
   end
 
-  # Private request helper
   private
 
+  def headers
+    { "Authorization" => "Bearer #{@api_key}", "Content-Type" => "application/json", "User-Agent" => "webintel-ruby-sdk/0.1.0" }
+  end
+
   def post(path, body = {})
-    response = self.class.post(path, body: body.to_json)
-    raise response.parsed_response["error"] || "HTTP #{response.code}" unless response.success?
-    response.parsed_response
+    3.times do |attempt|
+      response = self.class.post(path, body: body.to_json, headers: headers, timeout: 30)
+      if [429, 502, 503].include?(response.code) && attempt < 2
+        sleep(2 ** attempt)
+        next
+      end
+      raise response.parsed_response["error"] || "HTTP #{response.code}" unless response.success?
+      return response.parsed_response
+    end
   end
 
   def get(path)
-    response = self.class.get(path)
-    raise response.parsed_response["error"] || "HTTP #{response.code}" unless response.success?
-    response.parsed_response
+    3.times do |attempt|
+      response = self.class.get(path, headers: headers, timeout: 30)
+      if [429, 502, 503].include?(response.code) && attempt < 2
+        sleep(2 ** attempt)
+        next
+      end
+      raise response.parsed_response["error"] || "HTTP #{response.code}" unless response.success?
+      return response.parsed_response
+    end
   end
 
   public

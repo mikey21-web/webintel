@@ -8,3 +8,9 @@ dashboard/.next/
 dashboard/node_modules/
 cli/node_modules/
 n8n-node/node_modules/
+coverage/
+.env.local
+dashboard/.env.local
+__pycache__/
+*.tsbuildinfo
+*.pyc

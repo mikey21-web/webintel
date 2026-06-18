@@ -3,6 +3,7 @@ import { db } from '../db/client';
 import { creditBalances, usageLogs, subscriptions, payments } from '../db/schema';
 import { eq, sql, and, desc } from 'drizzle-orm';
 import { config } from '../config';
+import { createOrder } from '../billing/razorpay';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -21,29 +22,26 @@ export function checkCredits(cost: number) {
   return async (request: FastifyRequest, reply: FastifyReply) => {
     if (!request.userId) return reply.status(401).send({ error: 'Unauthorized' });
 
-    const [balance] = await db.select().from(creditBalances).where(eq(creditBalances.userId, request.userId)).limit(1);
-    const remaining = balance?.creditsRemaining ?? 0;
+    const result = await db.update(creditBalances)
+      .set({ 
+        creditsRemaining: sql`credits_remaining - ${cost}`, 
+        creditsUsedCycle: sql`credits_used_cycle + ${cost}` 
+      })
+      .where(and(
+        eq(creditBalances.userId, request.userId),
+        sql`credits_remaining >= ${cost}`
+      ));
 
-    if (remaining < cost) {
-      // Try auto top-up if Razorpay is configured
+    if ((result as any)?.rowCount === 0) {
       if (RAZORPAY_ENABLED) {
         try {
-          const autoTopedUp = await autoTopUp(request.userId);
-          if (autoTopedUp) {
-            // Re-check balance after top-up
-            const [newBalance] = await db.select().from(creditBalances).where(eq(creditBalances.userId, request.userId)).limit(1);
-            if (newBalance && (newBalance.creditsRemaining ?? 0) >= cost) {
-              await db.update(creditBalances)
-                .set({ creditsRemaining: sql`credits_remaining - ${cost}`, creditsUsedCycle: sql`credits_used_cycle + ${cost}` })
-                .where(eq(creditBalances.userId, request.userId));
-              request.creditsCost = cost;
-              return;
-            }
-          }
+          await autoTopUp(request.userId);
         } catch {
-          // Auto top-up failed, fall through to insufficient credits
         }
       }
+
+      const [balance] = await db.select().from(creditBalances).where(eq(creditBalances.userId, request.userId)).limit(1);
+      const remaining = balance?.creditsRemaining ?? 0;
 
       return reply.status(402).send({
         error: 'Insufficient credits',
@@ -57,10 +55,6 @@ export function checkCredits(cost: number) {
         paymentUrl: RAZORPAY_ENABLED ? '/v1/billing/plans' : undefined,
       });
     }
-
-    await db.update(creditBalances)
-      .set({ creditsRemaining: sql`credits_remaining - ${cost}`, creditsUsedCycle: sql`credits_used_cycle + ${cost}` })
-      .where(eq(creditBalances.userId, request.userId));
 
     request.creditsCost = cost;
   };
@@ -84,39 +78,31 @@ export async function autoTopUp(userId: string): Promise<boolean> {
 
   const [balance] = await db.select().from(creditBalances).where(eq(creditBalances.userId, userId)).limit(1);
   const remaining = balance?.creditsRemaining ?? 0;
-
-  // Only auto-top-up if below threshold
   if (remaining >= OVERAGE_THRESHOLD) return false;
 
-  // Check for a saved payment method (has completed payment before)
   const [lastPayment] = await db.select()
     .from(payments)
     .where(and(eq(payments.userId, userId), eq(payments.status, 'completed')))
     .orderBy(desc(payments.createdAt))
     .limit(1);
 
-  if (!lastPayment) return false; // No payment history, can't auto-top-up
+  if (!lastPayment) return false;
 
-  // Grant overage credits directly (in production, charge the saved card via Razorpay)
-  // For now, record the overage as a pending payment and grant credits
-  await db.insert(creditBalances).values({
+  const order = await createOrder(OVERAGE_PRICE_INR, `overage_${userId}_${Date.now()}`, {
     userId,
-    creditsRemaining: OVERAGE_PACK_SIZE,
-  } as any).onConflictDoUpdate({
-    target: creditBalances.userId,
-    set: { creditsRemaining: sql`credit_balances.credits_remaining + ${OVERAGE_PACK_SIZE}` },
+    credits: String(OVERAGE_PACK_SIZE),
+    type: 'auto_top_up',
   });
 
   await db.insert(payments).values({
     userId,
+    razorpayOrderId: order.id,
     amountINR: OVERAGE_PRICE_INR,
     creditsPurchased: OVERAGE_PACK_SIZE,
-    status: 'completed',
-    razorpayOrderId: 'auto_top_up',
-    razorpayPaymentId: `auto_${Date.now()}`,
+    status: 'pending',
   } as any);
 
-  return true;
+  return false;
 }
 
 export { OVERAGE_PACK_SIZE, OVERAGE_THRESHOLD, OVERAGE_PRICE_INR };

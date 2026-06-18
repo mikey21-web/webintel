@@ -8,7 +8,7 @@ export async function runCompare(domains: string[]) {
 
   // Scrape all domains in parallel
   const scrapeResults = await Promise.allSettled(
-    domains.map(d => sidecarScrape(`https://${d}`, { useJs: true }).catch(() => null))
+    domains.map(d => sidecarScrape(`https://${d}`, { useJs: true }))
   );
 
   const contents = domains

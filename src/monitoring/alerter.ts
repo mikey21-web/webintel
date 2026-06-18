@@ -32,8 +32,7 @@ async function sendWhatsApp(alert: Alert, monitor: Monitor) {
 }
 
 async function sendWebhook(alert: Alert, monitor: Monitor) {
-  const urls = (monitor.urls as string[]) || [];
-  const targetUrl = urls[0] || '';
+  const targetUrl = monitor.alertTarget || '';
   try {
     await fetch(targetUrl, {
       method: 'POST',

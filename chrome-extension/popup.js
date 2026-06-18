@@ -1,5 +1,3 @@
-const API_BASE = 'https://webintel.diyaaaa.in';
-
 async function getCurrentTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   return tab;
@@ -9,8 +7,8 @@ function extractDomain(url) {
   try { return new URL(url).hostname.replace('www.', ''); } catch { return null; }
 }
 
-async function fetchBrandProfile(domain, apiKey) {
-  const res = await fetch(`${API_BASE}/v1/brand/profile?domain=${domain}`, {
+async function fetchBrandProfile(domain, apiKey, baseUrl) {
+  const res = await fetch(`${baseUrl}/v1/brand/profile?domain=${domain}`, {
     headers: { Authorization: `Bearer ${apiKey}` }
   });
   if (!res.ok) {
@@ -299,14 +297,14 @@ async function init() {
   const fullReportLink = document.getElementById('fullReportLink');
   fullReportLink.href = 'https://dash.webintel.diyaaaa.in/domain/' + encodeURIComponent(domain);
 
-  const { apiKey } = await chrome.storage.sync.get('apiKey');
+  const { apiKey, baseUrl } = await chrome.storage.sync.get(['apiKey', 'baseUrl']);
   if (!apiKey) {
     showError('Configure your WebIntel API key in Settings to use the extension.', true);
     return;
   }
 
   try {
-    const data = await fetchBrandProfile(domain, apiKey);
+    const data = await fetchBrandProfile(domain, apiKey, baseUrl || 'https://api.webintel.dev');
     render(data, domain);
   } catch (err) {
     showError(err.message, false);

@@ -1,20 +1,13 @@
 import { FastifyInstance } from 'fastify';
 import { db } from '../db/client';
 import { apiKeys, users } from '../db/schema';
-import { hashApiKey } from '../utils/hash';
-import crypto from 'crypto';
-import { eq } from 'drizzle-orm';
+import { hashApiKey, generateApiKey } from '../utils/hash';
+import { eq, and } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth';
 import { verify as verifyJwt, createScopedToken } from '../utils/jwt';
 
-function generateApiKey(): { raw: string; hash: string; prefix: string } {
-  const entropy = crypto.randomBytes(32).toString('hex');
-  const raw = `wi_${entropy}`;
-  return { raw, hash: hashApiKey(raw), prefix: raw.slice(0, 10) };
-}
-
 export async function authRoutes(app: FastifyInstance) {
-  app.post<{ Body: { email: string; name?: string; plan?: string } }>('/keys', async (request, reply) => {
+  app.post<{ Body: { email: string; name?: string; plan?: string } }>('/keys', { preHandler: requireAuth }, async (request, reply) => {
     const { email, name, plan = 'free' } = request.body;
     if (!email) return reply.status(400).send({ error: 'Email is required' });
 
@@ -23,7 +16,9 @@ export async function authRoutes(app: FastifyInstance) {
       [user] = await db.insert(users).values({ email, plan }).returning();
     }
 
-    const { raw, hash, prefix } = generateApiKey();
+    const raw = generateApiKey();
+    const hash = hashApiKey(raw);
+    const prefix = raw.slice(0, 10);
     const [keyRow] = await db.insert(apiKeys).values({ userId: user.id, keyHash: hash, keyPrefix: prefix, name: name ?? 'Default' }).returning();
 
     return reply.status(201).send({
@@ -82,7 +77,10 @@ export async function authRoutes(app: FastifyInstance) {
     const [target] = await db
       .select({ id: apiKeys.id })
       .from(apiKeys)
-      .where(eq(apiKeys.id, request.params.id))
+      .where(and(
+        eq(apiKeys.id, request.params.id),
+        eq(apiKeys.userId, authKey.userId)
+      ))
       .limit(1);
     if (!target) return reply.status(404).send({ error: 'API key not found' });
 

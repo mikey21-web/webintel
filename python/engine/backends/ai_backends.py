@@ -55,10 +55,11 @@ class JinaReaderBackend(BaseBackend):
 
     async def scrape(self, url: str, **kwargs) -> Optional[ScrapeResult]:
         import httpx
+        import urllib.parse
         try:
             async with httpx.AsyncClient(timeout=60, follow_redirects=True) as client:
                 resp = await client.get(
-                    f"https://r.jina.ai/{url}",
+                    f"https://r.jina.ai/{urllib.parse.quote(url, safe='')}",
                     headers={"Accept": "text/markdown"}
                 )
                 resp.raise_for_status()

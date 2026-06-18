@@ -8,8 +8,9 @@ export async function resolveBrand(domain: string) {
   if (cached && cached.expiresAt && new Date(cached.expiresAt) > new Date()) return cached;
 
   const fresh = await fetchBrand(domain);
-  await db.insert(brandCache).values({ domain, ...fresh, fetchedAt: new Date() } as any)
-    .onConflictDoUpdate({ target: brandCache.domain, set: { ...fresh, fetchedAt: new Date() } as any });
+  const insertData: typeof brandCache.$inferInsert = { domain, ...fresh, fetchedAt: new Date() };
+  await db.insert(brandCache).values(insertData)
+    .onConflictDoUpdate({ target: brandCache.domain, set: { ...fresh, fetchedAt: new Date() } });
 
   const [result] = await db.select().from(brandCache).where(eq(brandCache.domain, domain)).limit(1);
   return result;

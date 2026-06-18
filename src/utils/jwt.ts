@@ -69,7 +69,7 @@ export function isAnonKey(token: string): boolean {
   return token === anonKey;
 }
 
-const SCOPED_SECRET = new TextEncoder().encode(config.SCOPED_JWT_SECRET || 'webintel-scoped-jwt-secret-v1');
+const SCOPED_SECRET = new TextEncoder().encode(config.SCOPED_JWT_SECRET || (() => { throw new Error('SCOPED_JWT_SECRET is required'); })());
 
 export async function createScopedToken(userId: string, email: string): Promise<string> {
   return new SignJWT({ sub: userId, email, aud: 'authenticated', role: 'authenticated' })

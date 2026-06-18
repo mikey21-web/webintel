@@ -1,3 +1,4 @@
+import time
 from typing import Any, Optional
 
 import httpx
@@ -7,28 +8,34 @@ class WebIntel:
     def __init__(self, api_key: str, base_url: str = "https://api.webintel.dev"):
         self.api_key = api_key
         self.base_url = base_url.rstrip("/")
-        self._client = httpx.Client(timeout=60.0)
+        self._client = httpx.Client(timeout=httpx.Timeout(30.0))
 
     def _request(self, method: str, path: str, body: Any = None) -> Any:
         url = f"{self.base_url}{path}"
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
+            "User-Agent": "webintel-python-sdk/0.1.0",
         }
         kwargs = {"headers": headers}
         if body is not None:
             kwargs["json"] = body
-        response = self._client.request(method, url, **kwargs)
-        try:
-            response.raise_for_status()
-        except httpx.HTTPStatusError as exc:
-            detail = ""
+        retryable = {429, 502, 503, 504}
+        for attempt in range(3):
+            response = self._client.request(method, url, **kwargs)
+            if response.status_code in retryable and attempt < 2:
+                time.sleep(2 ** attempt)
+                continue
             try:
-                detail = exc.response.json()
-            except Exception:
-                detail = exc.response.text
-            raise RuntimeError(f"WebIntel API error {exc.response.status_code}: {detail}") from exc
-        return response.json()
+                response.raise_for_status()
+            except httpx.HTTPStatusError as exc:
+                detail = ""
+                try:
+                    detail = exc.response.json()
+                except Exception:
+                    detail = exc.response.text
+                raise RuntimeError(f"WebIntel API error {exc.response.status_code}: {detail}") from exc
+            return response.json()
 
     def scrape(
         self,
@@ -85,34 +92,34 @@ class WebIntel:
         return self._request("POST", "/v1/web/query", body={"url": url, "question": question})
 
     def brand_profile(self, domain: str) -> Any:
-        return self._request("GET", f"/v1/brand/profile/{domain}")
+        return self._request("GET", f"/v1/brand/profile?domain={domain}")
 
     def brand_logo(self, domain: str) -> Any:
-        return self._request("GET", f"/v1/brand/logo/{domain}")
+        return self._request("GET", f"/v1/logo/{domain}")
 
     def brand_colors(self, domain: str) -> Any:
-        return self._request("GET", f"/v1/brand/colors/{domain}")
+        return self._request("GET", f"/v1/brand/colors?domain={domain}")
 
     def brand_fonts(self, domain: str) -> Any:
-        return self._request("GET", f"/v1/brand/fonts/{domain}")
+        return self._request("GET", f"/v1/brand/fonts?domain={domain}")
 
     def brand_socials(self, domain: str) -> Any:
-        return self._request("GET", f"/v1/brand/socials/{domain}")
+        return self._request("GET", f"/v1/brand/socials?domain={domain}")
 
     def brand_tech_stack(self, domain: str) -> Any:
-        return self._request("GET", f"/v1/brand/techstack/{domain}")
+        return self._request("GET", f"/v1/brand/techstack?domain={domain}")
 
     def brand_styleguide(self, domain: str) -> Any:
-        return self._request("GET", f"/v1/brand/styleguide/{domain}")
+        return self._request("GET", f"/v1/brand/styleguide?domain={domain}")
 
     def brand_address(self, domain: str) -> Any:
-        return self._request("GET", f"/v1/brand/address/{domain}")
+        return self._request("GET", f"/v1/brand/address?domain={domain}")
 
     def classify(self, domain: str) -> Any:
-        return self._request("GET", f"/v1/brand/classify/{domain}")
+        return self._request("GET", f"/v1/brand/classify?domain={domain}")
 
     def logo_url(self, domain: str) -> str:
-        return f"https://cdn.webintel.dev/brand/logos/{domain}.png"
+        return f"https://cdn.webintel.dev/logo/{domain}.png"
 
     def health(self) -> Any:
         return self._request("GET", "/health")

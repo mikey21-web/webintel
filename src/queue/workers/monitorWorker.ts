@@ -70,6 +70,7 @@ export function startMonitorWorker() {
       await db.update(monitors).set({ lastCheckedAt: new Date() }).where(eq(monitors.id, monitorId));
     } catch (err) {
       console.error(`Monitor worker error for monitor ${monitorId}:`, (err as Error).message);
+      throw err;
     }
   }, { connection, concurrency: 3 });
   

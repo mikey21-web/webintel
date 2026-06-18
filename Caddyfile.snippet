@@ -1,3 +1,22 @@
-webintel.diyaaaa.in { reverse_proxy localhost:3456 }
-dash.webintel.diyaaaa.in { reverse_proxy localhost:3457 }
-logos.diyaaaa.in { reverse_proxy localhost:3456/v1/brand/logo-cdn }
+(security) {
+    header /* {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'"
+    }
+}
+
+webintel.diyaaaa.in {
+    import security
+    reverse_proxy localhost:3456
+}
+
+dash.webintel.diyaaaa.in {
+    import security
+    reverse_proxy localhost:3457
+}
+
+logos.diyaaaa.in {
+    import security
+    rewrite * /v1/brand/logo-cdn{path}
+    reverse_proxy localhost:3456
+}

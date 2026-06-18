@@ -33,11 +33,13 @@ export default function DashboardHome() {
       return;
     }
 
+    const controller = new AbortController();
+
     async function fetchData() {
       try {
         const [usageRes, historyRes] = await Promise.all([
-          fetch('/api/webintel?path=v1/usage'),
-          fetch('/api/webintel?path=v1/usage/history'),
+          fetch('/api/webintel?path=v1/usage', { signal: controller.signal }),
+          fetch('/api/webintel?path=v1/usage/history', { signal: controller.signal }),
         ]);
 
         if (usageRes.ok) {
@@ -50,6 +52,7 @@ export default function DashboardHome() {
           if (historyData.daily) setChartData(historyData.daily);
         }
       } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
         console.error('Failed to fetch dashboard data:', err);
       } finally {
         setLoadingData(false);
@@ -57,6 +60,7 @@ export default function DashboardHome() {
     }
 
     fetchData();
+    return () => controller.abort();
   }, [user, isLoading, router]);
 
   if (isLoading) {
@@ -67,7 +71,13 @@ export default function DashboardHome() {
     );
   }
 
-  if (!user) return null;
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fade-in">

@@ -8,6 +8,11 @@ export async function GET(request: NextRequest) {
   const path = searchParams.get('path');
   if (!path) return NextResponse.json({ error: 'path required' }, { status: 400 });
 
+  const allowedPrefixes = ['v1/', 'v1/brand/', 'v1/web/', 'v1/intel/', 'v1/billing/', 'v1/usage', 'v1/monitor', 'v1/version', 'v1/health'];
+  if (!allowedPrefixes.some(prefix => path.startsWith(prefix))) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 400 });
+  }
+
   const supabase = createClient();
   const { data: { session } } = await supabase.auth.getSession();
 
@@ -32,6 +37,11 @@ export async function POST(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const path = searchParams.get('path');
   if (!path) return NextResponse.json({ error: 'path required' }, { status: 400 });
+
+  const allowedPrefixes = ['v1/', 'v1/brand/', 'v1/web/', 'v1/intel/', 'v1/billing/', 'v1/usage', 'v1/monitor', 'v1/version', 'v1/health'];
+  if (!allowedPrefixes.some(prefix => path.startsWith(prefix))) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 400 });
+  }
 
   const supabase = createClient();
   const { data: { session } } = await supabase.auth.getSession();
@@ -62,6 +72,11 @@ export async function DELETE(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const path = searchParams.get('path');
   if (!path) return NextResponse.json({ error: 'path required' }, { status: 400 });
+
+  const allowedPrefixes = ['v1/', 'v1/brand/', 'v1/web/', 'v1/intel/', 'v1/billing/', 'v1/usage', 'v1/monitor', 'v1/version', 'v1/health'];
+  if (!allowedPrefixes.some(prefix => path.startsWith(prefix))) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 400 });
+  }
 
   const supabase = createClient();
   const { data: { session } } = await supabase.auth.getSession();

@@ -7,9 +7,10 @@
   "homepage": "https://webintel.diyaaaa.in",
   "author": { "name": "diyaa.ai", "email": "udayakirantumma@gmail.com" },
   "repository": { "type": "git", "url": "https://github.com/diyaaai/n8n-nodes-webintel" },
-  "main": "index.js",
+  "main": "dist/nodes/WebIntel/WebIntel.node.js",
   "scripts": { "build": "tsc && gulp build:icons", "dev": "tsc --watch", "prepublishOnly": "npm run build" },
   "files": ["dist"],
   "n8n": { "n8nNodesApiVersion": 1, "credentials": ["dist/credentials/WebIntelApi.credentials.js"], "nodes": ["dist/nodes/WebIntel/WebIntel.node.js"] },
-  "devDependencies": { "@types/node": "^20.0.0", "n8n-workflow": "*", "typescript": "^5.0.0" }
+  "peerDependencies": { "n8n-workflow": "*" },
+  "devDependencies": { "@types/node": "^20.0.0", "gulp": "^4.0.0", "typescript": "^5.0.0" }
 }

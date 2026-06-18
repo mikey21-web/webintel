@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useSupabase } from '@/components/SupabaseProvider';
 import ApiKeyRow from '@/components/ApiKeyRow';
 import CreateKeyModal from '@/components/CreateKeyModal';
-import { Plus, KeyRound } from 'lucide-react';
+import { Plus, KeyRound, Loader2 } from 'lucide-react';
 
 type ApiKey = {
   id: string;
@@ -24,13 +24,14 @@ export default function KeysPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const fetchKeys = async () => {
+  const fetchKeys = async (signal?: AbortSignal) => {
     try {
-      const res = await fetch('/api/webintel?path=v1/auth/keys', { credentials: 'include' });
+      const res = await fetch('/api/webintel?path=v1/auth/keys', { credentials: 'include', signal });
       if (!res.ok) throw new Error('Failed to fetch keys');
       const data = await res.json();
       setKeys(data.keys ?? []);
     } catch (e: any) {
+      if (e.name === 'AbortError') return;
       setError(e.message);
     } finally {
       setLoading(false);
@@ -39,7 +40,10 @@ export default function KeysPage() {
 
   useEffect(() => {
     if (!isLoading && !user) router.replace('/login');
-    if (user) fetchKeys();
+    if (!user) return;
+    const controller = new AbortController();
+    fetchKeys(controller.signal);
+    return () => controller.abort();
   }, [user, isLoading, router]);
 
   const handleRevoke = async (keyId: string) => {
@@ -56,7 +60,13 @@ export default function KeysPage() {
     }
   };
 
-  if (isLoading || !user) return null;
+  if (isLoading || !user) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500" />
+      </div>
+    );
+  }
 
   return (
     <div>

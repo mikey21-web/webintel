@@ -11,7 +11,7 @@
   function createFloatingButton() {
     btnEl = document.createElement('div');
     btnEl.id = '__webintel_btn';
-    btnEl.innerHTML = 'W';
+    btnEl.textContent = 'W';
     Object.assign(btnEl.style, {
       position: 'fixed',
       bottom: '20px',
@@ -69,7 +69,7 @@
     if (brandData) {
       renderTooltip(brandData);
     } else {
-      tooltipEl.innerHTML = '<div style="text-align:center;color:#6b6f82;">Loading...</div>';
+      tooltipEl.textContent = ''; const loadingDiv = document.createElement('div'); loadingDiv.style.textAlign = 'center'; loadingDiv.style.color = '#6b6f82'; loadingDiv.textContent = 'Loading...'; tooltipEl.appendChild(loadingDiv);
       fetchBrandIntel();
     }
     tooltipEl.style.display = 'block';
@@ -78,19 +78,48 @@
   function renderTooltip(data) {
     const name = data.name || domain;
     const score = data.score ?? '--';
-    tooltipEl.innerHTML = `
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-        <div style="width:32px;height:32px;border-radius:6px;background:#1e2030;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#6366f1;flex-shrink:0;overflow:hidden;">
-          ${data.logo ? `<img src="${data.logo}" style="width:100%;height:100%;object-fit:contain;">` : name.charAt(0).toUpperCase()}
-        </div>
-        <div style="font-weight:600;font-size:14px;color:#f0f2f8;">${name}</div>
-      </div>
-      ${data.description ? `<div style="font-size:11px;color:#6b6f82;margin-bottom:6px;">${data.description}</div>` : ''}
-      <div style="display:flex;gap:12px;font-size:12px;">
-        <span style="color:#8b8fa7;">Score: <strong style="color:${score >= 7 ? '#34d399' : score >= 4 ? '#fbbf24' : '#f87171'}">${score}</strong></span>
-        ${data.industry ? `<span style="color:#8b8fa7;">${data.industry}</span>` : ''}
-      </div>
-    `;
+    tooltipEl.textContent = '';
+    const headerRow = document.createElement('div');
+    headerRow.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:8px;';
+    const logoWrap = document.createElement('div');
+    logoWrap.style.cssText = 'width:32px;height:32px;border-radius:6px;background:#1e2030;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#6366f1;flex-shrink:0;overflow:hidden;';
+    if (data.logo) {
+      const img = document.createElement('img');
+      img.src = data.logo;
+      img.style.cssText = 'width:100%;height:100%;object-fit:contain;';
+      logoWrap.appendChild(img);
+    } else {
+      logoWrap.textContent = name.charAt(0).toUpperCase();
+    }
+    headerRow.appendChild(logoWrap);
+    const nameEl = document.createElement('div');
+    nameEl.style.cssText = 'font-weight:600;font-size:14px;color:#f0f2f8;';
+    nameEl.textContent = name;
+    headerRow.appendChild(nameEl);
+    tooltipEl.appendChild(headerRow);
+    if (data.description) {
+      const descEl = document.createElement('div');
+      descEl.style.cssText = 'font-size:11px;color:#6b6f82;margin-bottom:6px;';
+      descEl.textContent = data.description;
+      tooltipEl.appendChild(descEl);
+    }
+    const bottomRow = document.createElement('div');
+    bottomRow.style.cssText = 'display:flex;gap:12px;font-size:12px;';
+    const scoreSpan = document.createElement('span');
+    scoreSpan.style.color = '#8b8fa7';
+    scoreSpan.appendChild(document.createTextNode('Score: '));
+    const strongEl = document.createElement('strong');
+    strongEl.style.color = score >= 7 ? '#34d399' : score >= 4 ? '#fbbf24' : '#f87171';
+    strongEl.textContent = String(score);
+    scoreSpan.appendChild(strongEl);
+    bottomRow.appendChild(scoreSpan);
+    if (data.industry) {
+      const indEl = document.createElement('span');
+      indEl.style.color = '#8b8fa7';
+      indEl.textContent = data.industry;
+      bottomRow.appendChild(indEl);
+    }
+    tooltipEl.appendChild(bottomRow);
   }
 
   async function fetchBrandIntel() {

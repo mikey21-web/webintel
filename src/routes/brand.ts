@@ -3,6 +3,9 @@ import { resolveBrand } from '../brand/resolver';
 import { buildWhatsAppTheme } from '../brand/whatsapp';
 import { requireAuth } from '../middleware/auth';
 import { askAI } from '../ai';
+import { sanitizeError } from '../utils/errors';
+
+const freeProviders = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com', 'icloud.com', 'proton.me', 'protonmail.com', 'mail.com', 'zoho.com'];
 
 async function brandHandler(domain: string, handler: (brand: any) => any) {
   if (!domain) {
@@ -45,7 +48,7 @@ export async function brandRoutes(app: FastifyInstance) {
         eicSubindustry: brand.eicSubindustry,
       }));
     } catch (err: any) {
-      return reply.status(err.statusCode || 500).send({ error: err.message });
+      return reply.status(err.statusCode || 500).send({ error: sanitizeError(err) });
     }
   });
 
@@ -57,7 +60,7 @@ export async function brandRoutes(app: FastifyInstance) {
         description: brand.description, industry: brand.industry, data: brand,
       }));
     } catch (err: any) {
-      return reply.status(err.statusCode || 500).send({ error: err.message });
+      return reply.status(err.statusCode || 500).send({ error: sanitizeError(err) });
     }
   });
 
@@ -72,7 +75,7 @@ export async function brandRoutes(app: FastifyInstance) {
         backdrops: [],
       }));
     } catch (err: any) {
-      return reply.status(err.statusCode || 500).send({ error: err.message });
+      return reply.status(err.statusCode || 500).send({ error: sanitizeError(err) });
     }
   });
 
@@ -83,7 +86,7 @@ export async function brandRoutes(app: FastifyInstance) {
         domain: brand.domain, logoUrl: brand.logoUrl, details: brand.logoVariants || null,
       }));
     } catch (err: any) {
-      return reply.status(err.statusCode || 500).send({ error: err.message });
+      return reply.status(err.statusCode || 500).send({ error: sanitizeError(err) });
     }
   });
 
@@ -94,7 +97,7 @@ export async function brandRoutes(app: FastifyInstance) {
         domain: brand.domain, primary: brand.primaryColor, palette: brand.palette || [],
       }));
     } catch (err: any) {
-      return reply.status(err.statusCode || 500).send({ error: err.message });
+      return reply.status(err.statusCode || 500).send({ error: sanitizeError(err) });
     }
   });
 
@@ -105,7 +108,7 @@ export async function brandRoutes(app: FastifyInstance) {
         domain: brand.domain, fonts: brand.fonts || [],
       }));
     } catch (err: any) {
-      return reply.status(err.statusCode || 500).send({ error: err.message });
+      return reply.status(err.statusCode || 500).send({ error: sanitizeError(err) });
     }
   });
 
@@ -117,7 +120,7 @@ export async function brandRoutes(app: FastifyInstance) {
         styleguide: brand.styleguide || {},
       }));
     } catch (err: any) {
-      return reply.status(err.statusCode || 500).send({ error: err.message });
+      return reply.status(err.statusCode || 500).send({ error: sanitizeError(err) });
     }
   });
 
@@ -128,7 +131,7 @@ export async function brandRoutes(app: FastifyInstance) {
         domain: brand.domain, socials: brand.socials || {},
       }));
     } catch (err: any) {
-      return reply.status(err.statusCode || 500).send({ error: err.message });
+      return reply.status(err.statusCode || 500).send({ error: sanitizeError(err) });
     }
   });
 
@@ -140,7 +143,7 @@ export async function brandRoutes(app: FastifyInstance) {
         city: brand.city || null, state: brand.state || null, pincode: brand.pincode || null,
       }));
     } catch (err: any) {
-      return reply.status(err.statusCode || 500).send({ error: err.message });
+      return reply.status(err.statusCode || 500).send({ error: sanitizeError(err) });
     }
   });
 
@@ -151,7 +154,7 @@ export async function brandRoutes(app: FastifyInstance) {
         domain: brand.domain, techstack: brand.techStack || [],
       }));
     } catch (err: any) {
-      return reply.status(err.statusCode || 500).send({ error: err.message });
+      return reply.status(err.statusCode || 500).send({ error: sanitizeError(err) });
     }
   });
 
@@ -162,7 +165,7 @@ export async function brandRoutes(app: FastifyInstance) {
         domain: brand.domain, theme: buildWhatsAppTheme(brand.primaryColor || null, brand.logoUrl || null),
       }));
     } catch (err: any) {
-      return reply.status(err.statusCode || 500).send({ error: err.message });
+      return reply.status(err.statusCode || 500).send({ error: sanitizeError(err) });
     }
   });
 
@@ -189,7 +192,7 @@ If you cannot identify the merchant, return {"brandName": null, "domain": null, 
         confidence: typeof result.confidence === 'number' ? result.confidence : 0,
       };
     } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
+      return reply.status(500).send({ error: sanitizeError(err) });
     }
   });
 
@@ -212,7 +215,7 @@ If you cannot identify the merchant, return {"brandName": null, "domain": null, 
         description: brand.description, industry: brand.industry, data: brand,
       }));
     } catch (err: any) {
-      return reply.status(err.statusCode || 500).send({ error: err.message });
+      return reply.status(err.statusCode || 500).send({ error: sanitizeError(err) });
     }
   });
 
@@ -222,7 +225,6 @@ If you cannot identify the merchant, return {"brandName": null, "domain": null, 
       if (!email || !email.includes('@')) {
         return reply.status(400).send({ error: 'Valid email is required' });
       }
-      const freeProviders = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com', 'icloud.com', 'proton.me', 'protonmail.com', 'mail.com', 'zoho.com'];
       const domain = email.split('@')[1].toLowerCase();
       if (freeProviders.includes(domain)) {
         return reply.status(422).send({ error: 'Free email provider detected', domain });
@@ -232,7 +234,7 @@ If you cannot identify the merchant, return {"brandName": null, "domain": null, 
         description: brand.description, industry: brand.industry, data: brand,
       }));
     } catch (err: any) {
-      return reply.status(err.statusCode || 500).send({ error: err.message });
+      return reply.status(err.statusCode || 500).send({ error: sanitizeError(err) });
     }
   });
 
@@ -256,7 +258,7 @@ If you cannot identify the merchant, return {"brandName": null, "domain": null, 
         logoUrl: brand.logoUrl, description: brand.description, industry: brand.industry, data: brand,
       }));
     } catch (err: any) {
-      return reply.status(err.statusCode || 500).send({ error: err.message });
+      return reply.status(err.statusCode || 500).send({ error: sanitizeError(err) });
     }
   });
 
@@ -270,7 +272,7 @@ If you cannot identify the merchant, return {"brandName": null, "domain": null, 
       resolveBrand(domain).catch(() => {});
       return reply.send({ status: 'ok', message: `Prefetch initiated for ${domain}`, domain });
     } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
+      return reply.status(500).send({ error: sanitizeError(err) });
     }
   });
 
@@ -278,7 +280,6 @@ If you cannot identify the merchant, return {"brandName": null, "domain": null, 
     try {
       const { email } = req.body as { email: string };
       if (!email || !email.includes('@')) return reply.status(400).send({ error: 'Valid email is required' });
-      const freeProviders = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com', 'icloud.com', 'proton.me', 'protonmail.com', 'mail.com'];
       const domain = email.split('@')[1].toLowerCase();
       if (freeProviders.includes(domain)) {
         return reply.status(422).send({ error: 'Free email provider detected', domain });
@@ -289,7 +290,7 @@ If you cannot identify the merchant, return {"brandName": null, "domain": null, 
       resolveBrand(domain).catch(() => {});
       return reply.send({ status: 'ok', message: `Prefetch initiated for ${domain}`, domain });
     } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
+      return reply.status(500).send({ error: sanitizeError(err) });
     }
   });
 }

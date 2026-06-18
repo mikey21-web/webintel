@@ -45,44 +45,47 @@ async function fetchImageBuffer(url: string): Promise<Buffer | null> {
   }
 }
 
-async function toPng(buffer: Buffer): Promise<Buffer | null> {
+const WEB_FORMATS = new Set(['jpeg', 'png', 'webp', 'gif']);
+
+async function processToWebFormat(buffer: Buffer): Promise<{ buffer: Buffer; format: string; width: number; height: number } | null> {
   try {
-    return await sharp(buffer).png().toBuffer();
+    const meta = await sharp(buffer).metadata();
+    const format = meta.format || 'png';
+    const width = meta.width || 0;
+    const height = meta.height || 0;
+    if (WEB_FORMATS.has(format)) {
+      return { buffer, format, width, height };
+    }
+    const pngBuf = await sharp(buffer).png().toBuffer();
+    return { buffer: pngBuf, format: 'png', width, height };
   } catch {
     return null;
   }
 }
 
-async function uploadToR2(domain: string, buffer: Buffer): Promise<string> {
+async function uploadToR2(domain: string, buffer: Buffer, format: string): Promise<string> {
   const r2 = getR2Client();
   if (!r2) return '';
-  const key = `logos/${domain}/${randomUUID()}.png`;
+  const ext = format === 'jpeg' ? 'jpg' : format;
+  const key = `logos/${domain}/${randomUUID()}.${ext}`;
+  const contentType = `image/${format === 'jpeg' ? 'jpeg' : format}`;
   await r2.send(new PutObjectCommand({
     Bucket: config.R2_BUCKET_NAME,
     Key: key,
     Body: buffer,
-    ContentType: 'image/png',
+    ContentType: contentType,
   }));
   return `${config.R2_PUBLIC_URL}/${key}`;
-}
-
-async function getDimensions(buffer: Buffer): Promise<{ width: number; height: number }> {
-  try {
-    const meta = await sharp(buffer).metadata();
-    return { width: meta.width || 0, height: meta.height || 0 };
-  } catch {
-    return { width: 0, height: 0 };
-  }
 }
 
 async function trySource(url: string, domain: string, source: LogoResult['source']): Promise<LogoResult | null> {
   const buf = await fetchImageBuffer(url);
   if (!buf) return null;
-  const png = await toPng(buf);
-  if (!png) return null;
-  const { width, height } = await getDimensions(png);
-  const cdnUrl = await uploadToR2(domain, png);
-  return { url, cdnUrl, width, height, format: 'png', source };
+  const processed = await processToWebFormat(buf);
+  if (!processed) return null;
+  const { buffer, format, width, height } = processed;
+  const cdnUrl = await uploadToR2(domain, buffer, format);
+  return { url, cdnUrl, width, height, format, source };
 }
 
 export async function extractLogo($: any, baseUrl: string): Promise<LogoResult | null> {
@@ -106,11 +109,22 @@ export async function extractLogo($: any, baseUrl: string): Promise<LogoResult |
     if (src) sources.push({ url: normalizeUrl(src, baseUrl), source: 'img-tag' });
   });
 
-  const deduped = sources.filter((s, i, arr) => arr.findIndex(x => x.url === s.url) === i);
+  const deduped = sources.filter((s, i, arr) => arr.findIndex(x => x.url === s.url) === i).slice(0, 5);
 
-  for (const { url, source } of deduped) {
-    const result = await trySource(url, domain, source);
-    if (result) return result;
+  const promises = deduped.map(({ url, source }) =>
+    (async () => {
+      const result = await trySource(url, domain, source);
+      if (!result) throw new Error('failed');
+      return result;
+    })()
+  );
+
+  if (promises.length > 0) {
+    try {
+      return await Promise.any(promises);
+    } catch {
+      // all failed, fall through to fallback
+    }
   }
 
   const googleFallback = `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;

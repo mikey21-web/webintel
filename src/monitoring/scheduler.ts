@@ -10,6 +10,8 @@ const INTERVALS: Record<string, string> = {
   weekly: '30 2 * * 1',
 };
 
+const scheduledTasks: cron.ScheduledTask[] = [];
+
 async function enqueueMonitors(interval: string) {
   const activeMonitors = await db.select().from(monitors).where(
     and(eq(monitors.active, true), eq(monitors.checkInterval, interval))
@@ -17,7 +19,8 @@ async function enqueueMonitors(interval: string) {
   const queue = getMonitorQueue();
   for (const monitor of activeMonitors) {
     const urls = (monitor.urls as string[]) || [];
-    const url = urls[0] || '';
+    if (urls.length === 0) continue;
+    const url = urls[0];
     await queue.add('monitor', { monitorId: monitor.id, url }, {
       removeOnComplete: true,
       removeOnFail: false,
@@ -32,12 +35,21 @@ export function startMonitorScheduler() {
       console.error(`Invalid cron expression for ${interval}: ${cronExpr}`);
       continue;
     }
-    cron.schedule(cronExpr, () => {
+    const task = cron.schedule(cronExpr, () => {
       console.log(`Running ${interval} monitor checks...`);
       enqueueMonitors(interval).catch(err => {
         console.error(`Monitor scheduler (${interval}) error:`, err);
       });
     });
+    scheduledTasks.push(task);
   }
   console.log('Monitor scheduler started');
+}
+
+export function stopMonitorScheduler() {
+  for (const task of scheduledTasks) {
+    task.stop();
+  }
+  scheduledTasks.length = 0;
+  console.log('Monitor scheduler stopped');
 }

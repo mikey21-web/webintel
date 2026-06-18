@@ -21,7 +21,7 @@ export function startCrawlWorker() {
         .map((l: string) => l.replace(/[.,;:!?)]+$/, ''))
         .filter((l: string) => l.startsWith(new URL(url).origin))
         .filter((v: string, i: number, a: string[]) => a.indexOf(v) === i)
-        .slice(0, maxPages - 1);
+        .slice(0, Math.max(0, maxPages - 1));
       
       // Scrape discovered pages (limit concurrency)
       const pages: Array<{ url: string; markdown: string }> = [{ url, markdown: result.markdown }];

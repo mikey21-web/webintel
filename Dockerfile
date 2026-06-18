@@ -12,8 +12,6 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 COPY package*.json ./
 RUN npm ci --production
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY .env.example ./
 USER appuser
 EXPOSE 3456
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \

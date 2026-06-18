@@ -60,8 +60,9 @@ Return ONLY a JSON object (no markdown, no code fences) with these fields:
 Use null for any field you cannot determine with confidence.`;
 
     const parsed = await askAI<ClassificationResult>('You are a business classification expert. Return valid JSON only.', prompt);
+    const validIndustries = Object.keys(EIC_TAXONOMY);
     return {
-      industry: parsed.industry || null,
+      industry: parsed.industry && validIndustries.includes(parsed.industry) ? parsed.industry : null,
       category: parsed.category || null,
       naicsCode: parsed.naicsCode || null,
       eicCode: parsed.eicCode || null,

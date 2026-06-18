@@ -1,6 +1,6 @@
 {
   "name": "webintel",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "WebIntel API client — domain intelligence, web scraping, brand data",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

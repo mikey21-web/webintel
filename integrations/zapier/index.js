@@ -27,6 +27,8 @@ const App = createApp({
     (request, z, bundle) => {
       request.headers['Authorization'] = `Bearer ${bundle.authData.apiKey}`;
       request.headers['Content-Type'] = 'application/json';
+      request.headers['User-Agent'] = 'webintel-zapier/0.1.0';
+      request.timeout = 30000;
       return request;
     },
   ],
@@ -35,6 +37,10 @@ const App = createApp({
     (response, z, bundle) => {
       if (response.status === 401) {
         throw new z.errors.Error('Invalid API Key', 'AuthenticationError', response.status);
+      }
+      const retryable = [429, 502, 503, 504];
+      if (retryable.includes(response.status)) {
+        throw new z.errors.Error('Retryable error', 'RetryableError', response.status);
       }
       if (response.status >= 400) {
         throw new z.errors.Error(
