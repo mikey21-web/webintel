@@ -1,5 +1,4 @@
-from .aggregator import ResultAggregator
-from .quality_scorer import QualityScorer
+from .quality_scorer import QualityScorer, ResultAggregator
 
 ALL_PROCESSORS = [ResultAggregator, QualityScorer]
 

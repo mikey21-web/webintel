@@ -1,14 +1,55 @@
 import { FastifyInstance } from 'fastify';
 import { db } from '../db/client';
-import { apiKeys, users } from '../db/schema';
+import { apiKeys, users, creditBalances } from '../db/schema';
 import { hashApiKey, generateApiKey } from '../utils/hash';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth';
 import { verify as verifyJwt, createScopedToken } from '../utils/jwt';
 import { rateLimit } from '../middleware/rateLimit';
 import { sanitizeError } from '../utils/errors';
+import { z } from 'zod';
+
+const signupSchema = z.object({ email: z.string().email() });
 
 export async function authRoutes(app: FastifyInstance) {
+  app.post<{ Body: z.infer<typeof signupSchema> }>('/signup', { preHandler: [rateLimit()] }, async (request, reply) => {
+    try {
+      const parsed = signupSchema.safeParse(request.body);
+      if (!parsed.success) return reply.status(400).send({ error: 'Valid email is required' });
+      const { email } = parsed.data;
+
+      let [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+      if (!user) {
+        [user] = await db.insert(users).values({ email, plan: 'pro' }).returning();
+        await db.insert(creditBalances).values({
+          userId: user.id,
+          creditsRemaining: 500,
+          creditsUsedCycle: 0,
+        } as any).onConflictDoUpdate({
+          target: creditBalances.userId,
+          set: { creditsRemaining: sql`${creditBalances.creditsRemaining} + 500` },
+        });
+      }
+
+      const raw = generateApiKey();
+      const hash = hashApiKey(raw);
+      await db.insert(apiKeys).values({
+        userId: user.id,
+        keyHash: hash,
+        keyPrefix: raw.slice(0, 10),
+        name: 'Default',
+      });
+
+      return reply.status(201).send({
+        apiKey: raw,
+        plan: user.plan,
+        message: 'Welcome to WebIntel! Save your API key — it won\'t be shown again.',
+      });
+    } catch (err: any) {
+      return reply.status(500).send({ error: sanitizeError(err) });
+    }
+  });
+
   app.post<{ Body: { name?: string } }>('/keys', { preHandler: [requireAuth, rateLimit()] }, async (request, reply) => {
     try {
       const [user] = await db.select().from(users).where(eq(users.id, request.userId!)).limit(1);
