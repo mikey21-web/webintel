@@ -1,23 +1,25 @@
 import { sidecarScrape } from '../scraping/sidecar';
 import { detectSoftBlock } from './detectors';
-import { getProxyProvider } from './proxy';
+import { getProxyProvider, buildProxyUrl } from './proxy';
 import { getCaptchaSolver } from './captcha';
 import type { FetchResult, FetchKnobs, ProxyConfig } from './types';
 import { FetchTier } from './types';
 
+const COMMON_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  'Accept-Language': 'en-US,en;q=0.9',
+};
+
 // ---------------------------------------------------------------------------
-// Tier 0 — Plain HTTP (undici / standard fetch)
+// Tier 0 — Plain HTTP (standard fetch)
 // ---------------------------------------------------------------------------
 
 async function tier0_http(url: string, _knobs: FetchKnobs): Promise<FetchResult> {
   const start = Date.now();
   try {
     const res = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-      },
+      headers: COMMON_HEADERS,
       redirect: 'follow',
       signal: AbortSignal.timeout(15000),
     });
@@ -27,8 +29,7 @@ async function tier0_http(url: string, _knobs: FetchKnobs): Promise<FetchResult>
 
     return {
       ok: !detection.blocked && res.ok,
-      content: html,
-      html,
+      content: html, html,
       contentType: res.headers.get('content-type') || 'text/html',
       statusCode: res.status,
       tier: FetchTier.T0_HTTP,
@@ -40,15 +41,10 @@ async function tier0_http(url: string, _knobs: FetchKnobs): Promise<FetchResult>
   } catch (err) {
     return {
       ok: false,
-      content: '',
-      html: '',
-      contentType: '',
-      statusCode: 0,
-      tier: FetchTier.T0_HTTP,
-      blockType: null,
+      content: '', html: '', contentType: '', statusCode: 0,
+      tier: FetchTier.T0_HTTP, blockType: null,
       reason: err instanceof Error ? err.message : 'HTTP request failed',
-      durationMs: Date.now() - start,
-      headers: {},
+      durationMs: Date.now() - start, headers: {},
     };
   }
 }
@@ -78,14 +74,16 @@ async function tier1_http_proxy(url: string, knobs: FetchKnobs): Promise<FetchRe
       sessionId: knobs.sessionId,
     });
 
+    // Use undici with ProxyAgent for actual proxy routing
+    const { ProxyAgent } = await import('undici');
+    const proxyUrl = buildProxyUrl(proxyConfig);
+    const dispatcher = new ProxyAgent(proxyUrl);
+
     const res = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-      },
+      headers: COMMON_HEADERS,
       redirect: 'follow',
       signal: AbortSignal.timeout(20000),
+      dispatcher,
     });
 
     const html = await res.text();
@@ -134,15 +132,12 @@ async function tier2_headless_chrome(url: string, _knobs: FetchKnobs): Promise<F
 
     return {
       ok: !detection.blocked,
-      content: result.markdown,
-      html: result.html,
-      contentType: 'text/html',
-      statusCode: 200,
+      content: result.markdown, html: result.html,
+      contentType: 'text/html', statusCode: 200,
       tier: FetchTier.T2_HEADLESS_CHROME,
       blockType: detection.blocked ? detection.blockType : null,
       reason: detection.blocked ? detection.reason : null,
-      durationMs: Date.now() - start,
-      headers: {},
+      durationMs: Date.now() - start, headers: {},
     };
   } catch (err) {
     return {
@@ -184,21 +179,19 @@ async function tier3_stealth_residential(url: string, knobs: FetchKnobs): Promis
       waitFor: 5000,
       useJs: true,
       stealth: true,
+      proxy: proxyConfig,
     });
 
     const detection = detectSoftBlock(result.markdown, 200, {}, url);
 
     return {
       ok: !detection.blocked,
-      content: result.markdown,
-      html: result.html,
-      contentType: 'text/html',
-      statusCode: 200,
+      content: result.markdown, html: result.html,
+      contentType: 'text/html', statusCode: 200,
       tier: FetchTier.T3_STEALTH_RESIDENTIAL,
       blockType: detection.blocked ? detection.blockType : null,
       reason: detection.blocked ? detection.reason : null,
-      durationMs: Date.now() - start,
-      headers: {},
+      durationMs: Date.now() - start, headers: {},
     };
   } catch (err) {
     return {
@@ -241,32 +234,29 @@ async function tier4_captcha(url: string, _knobs: FetchKnobs): Promise<FetchResu
 
     const detection = detectSoftBlock(result.markdown, 200, {}, url);
 
-    // If we got a CAPTCHA page, attempt to solve it
     if (detection.blockType === 'captcha' || detection.blockType === 'cloudflare') {
       const siteKey = extractRecaptchaSiteKey(result.html);
       if (siteKey) {
         try {
-          await solver.solveRecaptchaV2({ siteKey, pageUrl: url });
+          const token = await solver.solveRecaptchaV2({ siteKey, pageUrl: url });
 
           const result2 = await sidecarScrape(url, {
             waitFor: 5000,
             useJs: true,
             stealth: true,
+            captchaToken: token,
           });
 
           const detection2 = detectSoftBlock(result2.markdown, 200, {}, url);
 
           return {
             ok: !detection2.blocked,
-            content: result2.markdown,
-            html: result2.html,
-            contentType: 'text/html',
-            statusCode: 200,
+            content: result2.markdown, html: result2.html,
+            contentType: 'text/html', statusCode: 200,
             tier: FetchTier.T4_CAPTCHA,
             blockType: detection2.blocked ? detection2.blockType : null,
             reason: detection2.blocked ? `CAPTCHA solve failed: ${detection2.reason}` : null,
-            durationMs: Date.now() - start,
-            headers: {},
+            durationMs: Date.now() - start, headers: {},
           };
         } catch (captchaErr) {
           return {
@@ -312,8 +302,7 @@ async function tier5_give_up(reason: string, previousTier: FetchTier): Promise<F
     tier: FetchTier.T5_GIVE_UP,
     blockType: 'unknown_challenge',
     reason: `All tiers exhausted. Last error: ${reason}. Tier reached: ${previousTier}`,
-    durationMs: 0,
-    headers: {},
+    durationMs: 0, headers: {},
   };
 }
 
@@ -341,9 +330,7 @@ export async function fetchPage(
 ): Promise<FetchResult> {
   const maxTier = knobs.maxTier ?? FetchTier.T4_CAPTCHA;
 
-  // If render=always, skip Tier 0 and 1
   const startIndex = knobs.render === 'always' ? 2 : 0;
-  // If render=never, stop at Tier 1
   const effectiveMax = knobs.render === 'never'
     ? Math.min(maxTier, FetchTier.T1_HTTP_PROXY)
     : maxTier;
@@ -358,17 +345,7 @@ export async function fetchPage(
       return result;
     }
 
-    // If blocked by something solvable, escalate
-    if (result.blockType === 'captcha' || result.blockType === 'cloudflare' || result.blockType === 'datadome') {
-      continue;
-    }
-
-    // If it looks like a network error (not a block), escalate
-    if (result.statusCode === 0 && result.blockType === null) {
-      continue;
-    }
-
-    // If it's a block we can't solve (empty, redirect loop), escalate anyway
+    // Always escalate if not OK — let each tier decide if it can handle the block type
     continue;
   }
 

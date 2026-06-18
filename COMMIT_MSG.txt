@@ -1,0 +1,17 @@
+fix: production readiness — security, resilience, correctness
+
+- Make SCOPED_JWT_SECRET/WEBHOOK_SECRET optional with dev defaults so app boots
+- Wire proxy configs through sidecarScrape() and undici ProxyAgent for tiered fetch
+- Inject CAPTCHA solve tokens into browser re-scrape (was discarded)
+- Fix dead code in IPRoyal username construction
+- Wrap rateLimit and cache middleware in try/catch for Redis resilience
+- Add refundCredits() — credits deducted before operation are refunded on failure
+- Auth: check revoked status in GET/DELETE /keys manual auth path
+- Add try/catch to all 7 unprotected route files (intel, monitor, reports, version, usage, contracts, auth)
+- Add rate limiting to all 7 previously-unprotected route groups
+- Real /ready endpoint probing DB, Redis, sidecar availability
+- Restrict CORS from wildcard to configurable CORS_ORIGINS (defaults to *)
+- Wire robots.txt enforcement into web routes (with ignoreRobots override)
+- Fix dead code in proxy.ts IPRoyal country suffix stripping
+
+Co-authored-by: CommandCodeBot <noreply@commandcode.ai>

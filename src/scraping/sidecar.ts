@@ -14,6 +14,8 @@ export interface ScrapeOptions {
   fullPage?: boolean;
   useJs?: boolean;
   stealth?: boolean;
+  proxy?: { host: string; port: number; username?: string; password?: string };
+  captchaToken?: string;
 }
 
 export interface ParseResult {
@@ -26,17 +28,31 @@ export interface ParseResult {
 }
 
 export async function sidecarScrape(url: string, options: ScrapeOptions = {}): Promise<ScrapeResult> {
+  const body: Record<string, unknown> = {
+    url,
+    waitFor: options.waitFor ?? 0,
+    screenshot: options.screenshot ?? false,
+    fullPage: options.fullPage ?? false,
+    useJs: options.useJs ?? true,
+    stealth: options.stealth ?? false,
+  };
+
+  if (options.proxy) {
+    body.proxy = {
+      server: `http://${options.proxy.host}:${options.proxy.port}`,
+      username: options.proxy.username,
+      password: options.proxy.password,
+    };
+  }
+
+  if (options.captchaToken) {
+    body.captchaToken = options.captchaToken;
+  }
+
   const response = await fetch(`${config.CRAWL4AI_SIDECAR_URL}/scrape`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      url,
-      waitFor: options.waitFor ?? 0,
-      screenshot: options.screenshot ?? false,
-      fullPage: options.fullPage ?? false,
-      useJs: options.useJs ?? true,
-      stealth: options.stealth ?? false,
-    }),
+    body: JSON.stringify(body),
     signal: AbortSignal.timeout(60000),
   });
 

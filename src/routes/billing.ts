@@ -3,6 +3,7 @@ import { db } from '../db/client';
 import { billingPlans, subscriptions, payments, creditBalances } from '../db/schema';
 import { eq, sql } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth';
+import { rateLimit } from '../middleware/rateLimit';
 import {
   razorpayEnabled, createOrder, createSubscription, createPlan, verifyPayment,
   verifyWebhookSignature, getPayment, CREDIT_PACKS, SUBSCRIPTION_PLANS,
@@ -22,7 +23,7 @@ export async function billingRoutes(app: FastifyInstance) {
 
   app.post<{ Body: { packId: string } }>(
     '/create-order',
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, rateLimit()] },
     async (request, reply) => {
       const { packId } = request.body;
       const pack = CREDIT_PACKS.find(p => p.id === packId);
@@ -63,7 +64,7 @@ export async function billingRoutes(app: FastifyInstance) {
 
   app.post<{ Body: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string } }>(
     '/verify-payment',
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, rateLimit()] },
     async (request, reply) => {
       const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = request.body;
 
@@ -106,7 +107,7 @@ export async function billingRoutes(app: FastifyInstance) {
 
   app.post<{ Body: { planId: string } }>(
     '/create-subscription',
-    { preHandler: [requireAuth] },
+    { preHandler: [requireAuth, rateLimit()] },
     async (request, reply) => {
       const { planId } = request.body;
       const plan = SUBSCRIPTION_PLANS.find(p => p.id === planId);
@@ -151,65 +152,69 @@ export async function billingRoutes(app: FastifyInstance) {
   );
 
   app.post('/razorpay-webhook', async (request, reply) => {
-    const signature = request.headers['x-razorpay-signature'] as string;
-    const body = JSON.stringify(request.body);
+    try {
+      const signature = request.headers['x-razorpay-signature'] as string;
+      const body = JSON.stringify(request.body);
 
-    if (!verifyWebhookSignature(body, signature)) {
-      return reply.status(400).send({ error: 'Invalid webhook signature' });
-    }
-
-    const event = request.body as any;
-
-    switch (event.event) {
-      case 'payment.captured': {
-        const payment = event.payload.payment.entity;
-        const orderId = payment.order_id;
-        const paymentId = payment.id;
-        const amountINR = Math.round(payment.amount / 100);
-
-        const userId = payment.notes?.userId;
-        if (userId) {
-          const creditsStr = payment.notes?.credits;
-          let credits = creditsStr ? parseInt(creditsStr, 10) : Math.round(amountINR * 10);
-          if (isNaN(credits)) credits = Math.round(amountINR * 10);
-          await db.insert(creditBalances).values({
-            userId,
-            creditsRemaining: credits,
-          } as any).onConflictDoUpdate({
-            target: creditBalances.userId,
-            set: { creditsRemaining: sql`credit_balances.credits_remaining + ${credits}` },
-          });
-        }
-        break;
+      if (!verifyWebhookSignature(body, signature)) {
+        return reply.status(400).send({ error: 'Invalid webhook signature' });
       }
 
-      case 'subscription.charged': {
-        const sub = event.payload.subscription.entity;
-        const subId = sub.id;
-        const credits = parseInt(sub.notes?.credits || '30000', 10);
+      const event = request.body as any;
 
-        const [existingSub] = await db.select()
-          .from(subscriptions)
-          .where(eq(subscriptions.razorpaySubscriptionId, subId))
-          .limit(1);
+      switch (event.event) {
+        case 'payment.captured': {
+          const payment = event.payload.payment.entity;
+          const orderId = payment.order_id;
+          const paymentId = payment.id;
+          const amountINR = Math.round(payment.amount / 100);
 
-        if (existingSub) {
-          await db.insert(creditBalances).values({
-            userId: existingSub.userId,
-            creditsRemaining: credits,
-          } as any).onConflictDoUpdate({
-            target: creditBalances.userId,
-            set: { creditsRemaining: sql`credit_balances.credits_remaining + ${credits}` },
-          });
+          const userId = payment.notes?.userId;
+          if (userId) {
+            const creditsStr = payment.notes?.credits;
+            let credits = creditsStr ? parseInt(creditsStr, 10) : Math.round(amountINR * 10);
+            if (isNaN(credits)) credits = Math.round(amountINR * 10);
+            await db.insert(creditBalances).values({
+              userId,
+              creditsRemaining: credits,
+            } as any).onConflictDoUpdate({
+              target: creditBalances.userId,
+              set: { creditsRemaining: sql`credit_balances.credits_remaining + ${credits}` },
+            });
+          }
+          break;
         }
-        break;
-      }
-    }
 
-    return reply.send({ status: 'ok' });
+        case 'subscription.charged': {
+          const sub = event.payload.subscription.entity;
+          const subId = sub.id;
+          const credits = parseInt(sub.notes?.credits || '30000', 10);
+
+          const [existingSub] = await db.select()
+            .from(subscriptions)
+            .where(eq(subscriptions.razorpaySubscriptionId, subId))
+            .limit(1);
+
+          if (existingSub) {
+            await db.insert(creditBalances).values({
+              userId: existingSub.userId,
+              creditsRemaining: credits,
+            } as any).onConflictDoUpdate({
+              target: creditBalances.userId,
+              set: { creditsRemaining: sql`credit_balances.credits_remaining + ${credits}` },
+            });
+          }
+          break;
+        }
+      }
+
+      return reply.send({ status: 'ok' });
+    } catch (err: any) {
+      return reply.status(500).send({ error: sanitizeError(err) });
+    }
   });
 
-  app.get('/balance', { preHandler: [requireAuth] }, async (request) => {
+  app.get('/balance', { preHandler: [requireAuth, rateLimit()] }, async (request) => {
     const [balance] = await db.select()
       .from(creditBalances)
       .where(eq(creditBalances.userId, request.userId!))
@@ -222,7 +227,7 @@ export async function billingRoutes(app: FastifyInstance) {
     };
   });
 
-  app.get('/history', { preHandler: [requireAuth] }, async (request) => {
+  app.get('/history', { preHandler: [requireAuth, rateLimit()] }, async (request) => {
     const history = await db.select()
       .from(payments)
       .where(eq(payments.userId, request.userId!))

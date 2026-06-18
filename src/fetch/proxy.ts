@@ -23,8 +23,8 @@ class IPRoyalProvider implements ProxyProvider {
     const sessionId = options?.sessionId ? `_${options.sessionId}` : '';
 
     if (country) {
-      username.split('_country')[0]; // strip existing country suffix
-      const fullUsername = `${username}_country-${country}${sessionId}`;
+      const baseUsername = username.includes('_country') ? username.split('_country')[0] : username;
+      const fullUsername = `${baseUsername}_country-${country}${sessionId}`;
 
       return {
         host,

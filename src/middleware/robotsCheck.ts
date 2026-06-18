@@ -9,10 +9,11 @@ declare module 'fastify' {
 
 export function requireRobotsPermission() {
   return async (request: FastifyRequest, reply: FastifyReply) => {
-    // Only check POST/PUT/PATCH requests with a URL body
-    const body = request.body as { url?: string; domain?: string };
+    const body = request.body as { url?: string; domain?: string; ignoreRobots?: boolean };
     const url = body?.url || body?.domain;
-    
+
+    if (body?.ignoreRobots === true) return;
+
     if (url && typeof url === 'string') {
       const result = await checkRobotsTxt(url);
       if (!result.allowed) {
@@ -21,9 +22,9 @@ export function requireRobotsPermission() {
           message: result.reason,
           domain: result.domain,
           robotsUrl: `https://${result.domain}/robots.txt`,
+          hint: 'Pass ignoreRobots: true to override (use responsibly)',
         });
       }
-      // Store for downstream use
       request.robotsCheck = result;
     }
   };

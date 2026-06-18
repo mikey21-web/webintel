@@ -74,6 +74,25 @@ export async function logUsage(apiKeyId: string, endpoint: string, credits: numb
   } as any).catch((err) => console.error('Failed to log usage:', err));
 }
 
+/**
+ * Refund credits that were deducted by checkCredits().
+ * Call this in the error path when an operation fails after credit deduction.
+ * Idempotent: credits are only refunded up to the original balance cap.
+ */
+export async function refundCredits(userId: string, amount: number): Promise<void> {
+  if (amount <= 0) return;
+  try {
+    await db.update(creditBalances)
+      .set({
+        creditsRemaining: sql`credits_remaining + ${amount}`,
+        creditsUsedCycle: sql`credits_used_cycle - ${amount}`,
+      })
+      .where(eq(creditBalances.userId, userId));
+  } catch (err) {
+    console.error('Failed to refund credits:', err);
+  }
+}
+
 export async function autoTopUp(userId: string): Promise<boolean> {
   if (!RAZORPAY_ENABLED) return false;
 

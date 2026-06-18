@@ -22,11 +22,57 @@ import { startIntelWorker } from './queue/workers/intelWorker';
 import { startMonitorWorker } from './queue/workers/monitorWorker';
 import { setupRequestLogger } from './middleware/requestLogger';
 import { resolveBrand } from './brand/resolver';
+import { db } from './db/client';
+import { sql } from 'drizzle-orm';
 
 const app = Fastify({ logger: true });
 
+async function runMigrations() {
+  try {
+    await db.execute(sql`SELECT 1`);
+    console.log('[migrations] Database connected. Running migrations via drizzle-kit migrate...');
+    console.log('[migrations] Run `npm run db:migrate` before deploy to apply schema changes.');
+  } catch (err) {
+    console.error('[migrations] Database connection failed:', err);
+  }
+}
+
+async function healthCheckDB(): Promise<boolean> {
+  try {
+    await db.execute(sql`SELECT 1`);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function healthCheckRedis(): Promise<boolean> {
+  try {
+    return (await connection.ping()) === 'PONG';
+  } catch {
+    return false;
+  }
+}
+
+async function healthCheckSidecar(): Promise<boolean> {
+  try {
+    const res = await fetch(`${config.CRAWL4AI_SIDECAR_URL}/health`, {
+      signal: AbortSignal.timeout(5000),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 async function bootstrap() {
-  await app.register(cors, { origin: true });
+  await runMigrations();
+
+  const corsOrigins = config.CORS_ORIGINS === '*'
+    ? true
+    : config.CORS_ORIGINS.split(',').map(s => s.trim());
+
+  await app.register(cors, { origin: corsOrigins });
 
   setupRequestLogger(app);
 
@@ -42,7 +88,30 @@ async function bootstrap() {
   await app.register(sessionRoutes, { prefix: '/v1' });
   await app.register(billingRoutes, { prefix: '/v1/billing' });
 
+  // Liveness check — returns 200 if process is running
   app.get('/health', async () => ({ status: 'ok', ts: Date.now() }));
+
+  // Readiness check — probes all dependencies
+  app.get('/ready', async () => {
+    const [dbOk, redisOk, sidecarOk] = await Promise.all([
+      healthCheckDB(),
+      healthCheckRedis(),
+      healthCheckSidecar(),
+    ]);
+
+    const allOk = dbOk && redisOk && sidecarOk;
+
+    return {
+      status: allOk ? 'ready' : 'degraded',
+      checks: {
+        database: dbOk ? 'ok' : 'down',
+        redis: redisOk ? 'ok' : 'down',
+        sidecar: sidecarOk ? 'ok' : 'down',
+      },
+    };
+  });
+
+  app.get('/live', async () => ({ status: 'alive', ts: Date.now(), uptime: process.uptime() }));
 
   await app.register(pageRoutes);
 

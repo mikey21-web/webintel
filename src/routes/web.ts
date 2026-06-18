@@ -2,7 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { db } from '../db/client';
 import { crawlJobs } from '../db/schema';
 import { requireAuth } from '../middleware/auth';
-import { checkCredits, logUsage } from '../middleware/credits';
+import { checkCredits, logUsage, refundCredits } from '../middleware/credits';
 import { rateLimit } from '../middleware/rateLimit';
 import { responseCache } from '../middleware/cache';
 import { sidecarScrape, sidecarParse } from '../scraping/sidecar';
@@ -18,16 +18,22 @@ import { eq, sql } from 'drizzle-orm';
 import crypto from 'crypto';
 import { sanitizeError } from '../utils/errors';
 import { captureContract, validateContract, healContract } from '../extraction/contracts';
+import { requireRobotsPermission } from '../middleware/robotsCheck';
 import type { ContractSchema } from '../extraction/types';
 
 const CREDIT_COST = { scrape: 5, sitemap: 10, screenshot: 8, crawl: 25, extract: 15, query: 3 };
 
 async function recordUsage(request: any, endpoint: string, credits: number, status: number, start: number, url?: string, mod?: string) {
   logUsage(request.apiKeyId!, endpoint, credits, status, Date.now() - start, url, mod);
+  // Refund credits on failure if costs were pre-deducted by checkCredits
+  if (status >= 400 && request.userId && request.creditsCost && request.creditsCost > 0) {
+    refundCredits(request.userId, request.creditsCost).catch(() => {});
+    request.creditsCost = 0;
+  }
 }
 
 export async function webRoutes(app: FastifyInstance) {
-  const guard = [requireAuth, rateLimit()];
+  const guard = [requireAuth, rateLimit(), requireRobotsPermission()];
 
   function scrapeEndpoint(endpoint: string, format: 'markdown' | 'html' | 'images', credits: number) {
     const creditCheck = checkCredits(credits);
