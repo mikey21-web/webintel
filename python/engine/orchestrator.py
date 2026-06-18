@@ -31,7 +31,7 @@ class ExtractionOrchestrator:
         self.backends.sort(key=lambda b: b.priority)
         logger.info(f"Total backends ready: {len(self.backends)}/{len(ALL_BACKENDS)}")
 
-    async def extract(self, url: str, screenshot: bool = False, full_page: bool = True) -> ScrapeResult:
+    async def extract(self, url: str, screenshot: bool = False, full_page: bool = True, proxy: Optional[dict] = None, captcha_token: Optional[str] = None) -> ScrapeResult:
         if not self.backends:
             await self.init_backends()
 
@@ -39,6 +39,10 @@ class ExtractionOrchestrator:
         for backend in self.backends:
             try:
                 kwargs = {"screenshot": screenshot, "full_page": full_page}
+                if proxy:
+                    kwargs["proxy"] = proxy
+                if captcha_token:
+                    kwargs["captcha_token"] = captcha_token
                 result = await backend.scrape(url, **kwargs)
                 if result:
                     result = self._run_extractors(result)

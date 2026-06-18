@@ -49,6 +49,8 @@ class ScrapeRequest(BaseModel):
     fullPage: bool = True
     useJs: bool = True
     stealth: bool = True
+    proxy: Optional[dict] = None
+    captchaToken: Optional[str] = None
 
 
 class CrawlRequest(BaseModel):
@@ -75,6 +77,8 @@ async def scrape(req: ScrapeRequest):
             req.url,
             screenshot=req.screenshot,
             full_page=req.fullPage,
+            proxy=req.proxy,
+            captcha_token=req.captchaToken,
         )
         if result["source"] == "none":
             raise HTTPException(status_code=502, detail="All 50 backends failed")

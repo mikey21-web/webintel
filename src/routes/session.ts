@@ -3,6 +3,9 @@ import { requireAuth } from '../middleware/auth';
 import { checkCredits } from '../middleware/credits';
 import { rateLimit } from '../middleware/rateLimit';
 import { config } from '../config';
+import { z } from 'zod';
+
+const navigateSchema = z.object({ url: z.string().url() });
 
 async function sidecarPost(endpoint: string, body?: Record<string, unknown>): Promise<any> {
   const res = await fetch(`${config.CRAWL4AI_SIDECAR_URL}${endpoint}`, {
@@ -56,12 +59,13 @@ export async function sessionRoutes(app: FastifyInstance) {
     },
   );
 
-  app.post<{ Params: { id: string }; Body: { url: string } }>(
+  app.post<{ Params: { id: string }; Body: z.infer<typeof navigateSchema> }>(
     '/session/:id/navigate',
     { preHandler: [...guard, checkCredits(5)] },
     async (request, reply) => {
-      const { url } = request.body;
-      if (!url) return reply.status(400).send({ error: 'url is required' });
+      const parsed = navigateSchema.safeParse(request.body);
+      if (!parsed.success) return reply.status(400).send({ error: 'Invalid URL', details: parsed.error.flatten() });
+      const { url } = parsed.data;
       try {
         const data = await sidecarPost(`/session/${request.params.id}/navigate`, { url });
         return reply.send(data);

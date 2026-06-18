@@ -4,6 +4,7 @@ export function setupRequestLogger(app: FastifyInstance) {
   app.addHook('onResponse', async (request, reply) => {
     console.log(JSON.stringify({
       ts: new Date().toISOString(),
+      requestId: request.id,
       method: request.method,
       url: request.url,
       status: reply.statusCode,

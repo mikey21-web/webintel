@@ -1,6 +1,16 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { config } from './config';
+
+let Sentry: any;
+try {
+  Sentry = require('@sentry/node');
+  Sentry.init({ dsn: process.env.SENTRY_DSN, environment: config.NODE_ENV, tracesSampleRate: 0.1 });
+  console.log('[sentry] Error tracking enabled');
+} catch {
+  console.log('[sentry] Not installed — skipping (npm install @sentry/node)');
+}
+
 import { authRoutes } from './routes/auth';
 import { usageRoutes } from './routes/usage';
 import { webRoutes } from './routes/web';
@@ -24,8 +34,10 @@ import { setupRequestLogger } from './middleware/requestLogger';
 import { resolveBrand } from './brand/resolver';
 import { db } from './db/client';
 import { sql } from 'drizzle-orm';
+import crypto from 'crypto';
+import { sanitizeError } from './utils/errors';
 
-const app = Fastify({ logger: true });
+const app = Fastify({ logger: true, genReqId: () => crypto.randomUUID() });
 
 async function runMigrations() {
   try {
@@ -67,6 +79,26 @@ async function healthCheckSidecar(): Promise<boolean> {
 
 async function bootstrap() {
   await runMigrations();
+
+  // Correlation ID header on every response
+  app.addHook('onRequest', async (request, reply) => {
+    reply.header('X-Request-Id', request.id);
+  });
+
+  // Global error handler — last line of defense for uncaught errors
+  app.setErrorHandler((err, _request, reply) => {
+    const error = err as { statusCode?: number; message: string };
+    const statusCode = error.statusCode || 500;
+    const message = statusCode === 500 ? sanitizeError(error) : error.message;
+    app.log.error({ err: error, requestId: _request.id }, 'Unhandled error');
+    if (Sentry && statusCode === 500) {
+      Sentry.captureException(err, { extra: { requestId: _request.id, url: _request.url } });
+    }
+    reply.status(statusCode).send({
+      error: message,
+      requestId: _request.id,
+    });
+  });
 
   const corsOrigins = config.CORS_ORIGINS === '*'
     ? true

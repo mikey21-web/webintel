@@ -10,6 +10,15 @@ import {
 } from '../billing/razorpay';
 import { config } from '../config';
 import { sanitizeError } from '../utils/errors';
+import { z } from 'zod';
+
+const createOrderSchema = z.object({ packId: z.string() });
+const verifyPaymentSchema = z.object({
+  razorpay_order_id: z.string(),
+  razorpay_payment_id: z.string(),
+  razorpay_signature: z.string(),
+});
+const createSubSchema = z.object({ planId: z.string() });
 
 export async function billingRoutes(app: FastifyInstance) {
   app.get('/plans', async () => {
@@ -21,11 +30,13 @@ export async function billingRoutes(app: FastifyInstance) {
     };
   });
 
-  app.post<{ Body: { packId: string } }>(
+  app.post<{ Body: z.infer<typeof createOrderSchema> }>(
     '/create-order',
     { preHandler: [requireAuth, rateLimit()] },
     async (request, reply) => {
-      const { packId } = request.body;
+      const parsed = createOrderSchema.safeParse(request.body);
+      if (!parsed.success) return reply.status(400).send({ error: 'Invalid request', details: parsed.error.flatten() });
+      const { packId } = parsed.data;
       const pack = CREDIT_PACKS.find(p => p.id === packId);
       if (!pack) return reply.status(400).send({ error: 'Invalid pack ID' });
 
@@ -62,11 +73,13 @@ export async function billingRoutes(app: FastifyInstance) {
     },
   );
 
-  app.post<{ Body: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string } }>(
+  app.post<{ Body: z.infer<typeof verifyPaymentSchema> }>(
     '/verify-payment',
     { preHandler: [requireAuth, rateLimit()] },
     async (request, reply) => {
-      const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = request.body;
+      const parsed = verifyPaymentSchema.safeParse(request.body);
+      if (!parsed.success) return reply.status(400).send({ error: 'Invalid request', details: parsed.error.flatten() });
+      const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = parsed.data;
 
       try {
         const [existingPayment] = await db.select().from(payments).where(eq(payments.razorpayPaymentId, razorpay_payment_id)).limit(1);
@@ -105,11 +118,13 @@ export async function billingRoutes(app: FastifyInstance) {
     },
   );
 
-  app.post<{ Body: { planId: string } }>(
+  app.post<{ Body: z.infer<typeof createSubSchema> }>(
     '/create-subscription',
     { preHandler: [requireAuth, rateLimit()] },
     async (request, reply) => {
-      const { planId } = request.body;
+      const parsed = createSubSchema.safeParse(request.body);
+      if (!parsed.success) return reply.status(400).send({ error: 'Invalid request', details: parsed.error.flatten() });
+      const { planId } = parsed.data;
       const plan = SUBSCRIPTION_PLANS.find(p => p.id === planId);
       if (!plan) return reply.status(400).send({ error: 'Invalid plan ID' });
 

@@ -35,19 +35,37 @@ async function recordUsage(request: any, endpoint: string, credits: number, stat
 export async function webRoutes(app: FastifyInstance) {
   const guard = [requireAuth, rateLimit(), requireRobotsPermission()];
 
+  const scrapeSchema = z.object({
+    url: z.string().url(),
+    waitFor: z.number().optional(),
+    useJs: z.boolean().optional(),
+    stealth: z.boolean().optional(),
+    tieredFetch: z.boolean().optional(),
+    proxyCountry: z.string().optional(),
+    proxyType: z.enum(['residential', 'datacenter']).optional(),
+    sessionId: z.string().optional(),
+    render: z.enum(['auto', 'always', 'never']).optional(),
+    actions: z.array(z.record(z.unknown())).optional(),
+    maxTier: z.number().min(0).max(4).optional(),
+    ignoreRobots: z.boolean().optional(),
+  });
+
   function scrapeEndpoint(endpoint: string, format: 'markdown' | 'html' | 'images', credits: number) {
     const creditCheck = checkCredits(credits);
-    app.post<{ Body: { url: string; waitFor?: number; useJs?: boolean; stealth?: boolean; tieredFetch?: boolean; proxyCountry?: string; proxyType?: 'residential' | 'datacenter'; sessionId?: string; render?: 'auto' | 'always' | 'never'; actions?: any[]; maxTier?: number; ignoreRobots?: boolean } }>(
+    app.post<{ Body: z.infer<typeof scrapeSchema> }>(
       `/${endpoint}`,
       { preHandler: [...guard, creditCheck] },
       async (request, reply) => {
         const start = Date.now();
-        const { url, waitFor, useJs, stealth, tieredFetch, proxyCountry, proxyType, sessionId, render, actions, maxTier, ignoreRobots } = request.body;
-        if (!url) return reply.status(400).send({ error: 'url is required' });
+        const parsed = scrapeSchema.safeParse(request.body);
+        if (!parsed.success) {
+          return reply.status(400).send({ error: 'Invalid request', details: parsed.error.flatten() });
+        }
+        const { url, waitFor, useJs, stealth, tieredFetch, proxyCountry, proxyType, sessionId, render, actions, maxTier, ignoreRobots } = parsed.data;
 
         try {
           if (tieredFetch) {
-            const knobs: FetchKnobs = { proxyCountry, proxyType, sessionId, render, actions, maxTier, ignoreRobots };
+            const knobs: FetchKnobs = { proxyCountry, proxyType, sessionId, render, actions: actions as FetchKnobs['actions'], maxTier, ignoreRobots };
             const fetchResult = await fetchPage(url, knobs);
 
             if (!fetchResult.ok) {

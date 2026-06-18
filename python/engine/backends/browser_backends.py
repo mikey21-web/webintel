@@ -18,9 +18,30 @@ class PlaywrightBackend(BaseBackend):
     async def scrape(self, url: str, **kwargs) -> Optional[ScrapeResult]:
         from playwright.async_api import async_playwright
         try:
+            launch_opts = {"headless": True}
+            proxy = kwargs.get("proxy")
+            if proxy and proxy.get("server"):
+                launch_opts["proxy"] = {"server": proxy["server"]}
+                if proxy.get("username"):
+                    launch_opts["proxy"]["username"] = proxy["username"]
+                if proxy.get("password"):
+                    launch_opts["proxy"]["password"] = proxy["password"]
+
             async with async_playwright() as p:
-                browser = await p.chromium.launch(headless=True)
+                browser = await p.chromium.launch(**launch_opts)
                 page = await browser.new_page()
+
+                captcha_token = kwargs.get("captcha_token")
+                if captcha_token:
+                    await page.evaluate("""
+                        var textareas = document.querySelectorAll('textarea');
+                        textareas.forEach(function(ta) {
+                            if (ta.id && ta.id.toLowerCase().includes('recaptcha') || ta.name && ta.name.toLowerCase().includes('recaptcha')) {
+                                ta.value = arguments[0];
+                            }
+                        });
+                    """, captcha_token)
+
                 await page.goto(url, wait_until="networkidle", timeout=30000)
                 html = await page.content()
                 title = await page.title()
