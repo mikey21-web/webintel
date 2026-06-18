@@ -55,6 +55,8 @@ export async function fetchBrand(domain: string) {
     category: classification?.category || null,
     industry: classification?.industry || null,
     naicsCode: classification?.naicsCode || null,
+    eicCode: classification?.eicCode || null,
+    eicSubindustry: classification?.eicSubindustry || null,
     address: metadata.address || null,
     city: metadata.city || null,
     state: metadata.state || null,

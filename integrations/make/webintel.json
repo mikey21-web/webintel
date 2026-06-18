@@ -1,0 +1,284 @@
+{
+  "name": "WebIntel",
+  "version": 1,
+  "description": "WebIntel API — domain intelligence, web scraping, brand data",
+  "endpoint": "https://api.webintel.dev",
+  "baseUrl": "https://api.webintel.dev",
+  "authentication": {
+    "type": "custom",
+    "fields": [
+      {
+        "name": "apiKey",
+        "label": "API Key",
+        "type": "text",
+        "required": true
+      }
+    ],
+    "headers": {
+      "Authorization": "Bearer {{apiKey}}",
+      "Content-Type": "application/json"
+    }
+  },
+  "modules": [
+    {
+      "name": "Scrape Webpage",
+      "description": "Scrape a URL to clean markdown text",
+      "type": "action",
+      "url": "/v1/web/scrape/markdown",
+      "method": "POST",
+      "fields": [
+        {
+          "name": "url",
+          "label": "URL",
+          "type": "text",
+          "required": true
+        },
+        {
+          "name": "useJs",
+          "label": "Use JavaScript rendering",
+          "type": "boolean",
+          "required": false,
+          "default": true
+        },
+        {
+          "name": "waitFor",
+          "label": "Wait time (ms)",
+          "type": "number",
+          "required": false,
+          "default": 0
+        }
+      ],
+      "output": {
+        "markdown": "string",
+        "metadata.title": "string",
+        "metadata.description": "string",
+        "source": "string"
+      }
+    },
+    {
+      "name": "Extract Data",
+      "description": "Extract structured data from a URL using AI",
+      "type": "action",
+      "url": "/v1/web/extract",
+      "method": "POST",
+      "fields": [
+        {
+          "name": "url",
+          "label": "URL",
+          "type": "text",
+          "required": true
+        },
+        {
+          "name": "schema",
+          "label": "JSON Schema (optional)",
+          "type": "text",
+          "required": false,
+          "help": "Define fields to extract as JSON Schema"
+        },
+        {
+          "name": "prompt",
+          "label": "Instructions (optional)",
+          "type": "text",
+          "required": false,
+          "help": "Describe what data to extract in plain language"
+        }
+      ],
+      "output": {
+        "data": "object",
+        "confidence": "object",
+        "url": "string"
+      }
+    },
+    {
+      "name": "Lookup Brand",
+      "description": "Get brand intelligence for a domain",
+      "type": "action",
+      "url": "/v1/brand/profile",
+      "method": "GET",
+      "fields": [
+        {
+          "name": "domain",
+          "label": "Domain",
+          "type": "text",
+          "required": true
+        }
+      ],
+      "output": {
+        "domain": "string",
+        "brandName": "string",
+        "logoUrl": "string",
+        "description": "string",
+        "industry": "string",
+        "data": "object"
+      }
+    },
+    {
+      "name": "Search Web",
+      "description": "Search the web for a query",
+      "type": "action",
+      "url": "/v1/web/search",
+      "method": "POST",
+      "fields": [
+        {
+          "name": "query",
+          "label": "Search Query",
+          "type": "text",
+          "required": true
+        },
+        {
+          "name": "numResults",
+          "label": "Number of Results",
+          "type": "number",
+          "required": false,
+          "default": 10
+        }
+      ],
+      "output": {
+        "query": "string",
+        "results": "array",
+        "totalResults": "number"
+      }
+    },
+    {
+      "name": "Crawl Domain",
+      "description": "Start a crawl of a domain",
+      "type": "action",
+      "url": "/v1/web/crawl",
+      "method": "POST",
+      "fields": [
+        {
+          "name": "url",
+          "label": "Starting URL",
+          "type": "text",
+          "required": true
+        },
+        {
+          "name": "maxPages",
+          "label": "Max Pages",
+          "type": "number",
+          "required": false,
+          "default": 50
+        }
+      ],
+      "output": {
+        "jobId": "string",
+        "status": "string"
+      }
+    },
+    {
+      "name": "Identify Transaction",
+      "description": "Identify merchant from a bank transaction descriptor",
+      "type": "action",
+      "url": "/v1/brand/transaction",
+      "method": "POST",
+      "fields": [
+        {
+          "name": "descriptor",
+          "label": "Transaction Descriptor",
+          "type": "text",
+          "required": true,
+          "help": "Raw descriptor text from bank statement (e.g. AMZN MKTP US*2K8F7G1)"
+        }
+      ],
+      "output": {
+        "descriptor": "string",
+        "brandName": "string",
+        "domain": "string",
+        "confidence": "number"
+      }
+    },
+    {
+      "name": "Classify Business",
+      "description": "Get NAICS/EIC industry classification for a domain",
+      "type": "action",
+      "url": "/v1/brand/classify",
+      "method": "GET",
+      "fields": [
+        {
+          "name": "domain",
+          "label": "Domain",
+          "type": "text",
+          "required": true
+        }
+      ],
+      "output": {
+        "domain": "string",
+        "industry": "string",
+        "category": "string",
+        "naicsCode": "string",
+        "eicCode": "string",
+        "eicSubindustry": "string"
+      }
+    },
+    {
+      "name": "Get Crawl Status",
+      "description": "Check the status of a crawl job",
+      "type": "action",
+      "url": "/v1/web/crawl/{{jobId}}",
+      "method": "GET",
+      "fields": [
+        {
+          "name": "jobId",
+          "label": "Job ID",
+          "type": "text",
+          "required": true
+        }
+      ],
+      "output": {
+        "jobId": "string",
+        "status": "string",
+        "pagesCrawled": "number"
+      }
+    },
+    {
+      "name": "List Monitors",
+      "description": "List change monitors for the account",
+      "type": "action",
+      "url": "/v1/monitor",
+      "method": "GET",
+      "fields": [],
+      "output": {
+        "monitors": "array"
+      }
+    },
+    {
+      "name": "Get Brand Logo",
+      "description": "Get brand logo URL for a domain",
+      "type": "action",
+      "url": "/v1/brand/logo",
+      "method": "GET",
+      "fields": [
+        {
+          "name": "domain",
+          "label": "Domain",
+          "type": "text",
+          "required": true
+        }
+      ],
+      "output": {
+        "domain": "string",
+        "logoUrl": "string"
+      }
+    },
+    {
+      "name": "Get Brand Colors",
+      "description": "Get brand color palette for a domain",
+      "type": "action",
+      "url": "/v1/brand/colors",
+      "method": "GET",
+      "fields": [
+        {
+          "name": "domain",
+          "label": "Domain",
+          "type": "text",
+          "required": true
+        }
+      ],
+      "output": {
+        "domain": "string",
+        "primary": "string",
+        "palette": "array"
+      }
+    }
+  ]
+}

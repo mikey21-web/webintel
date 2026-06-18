@@ -8,12 +8,14 @@ import { brandRoutes } from './routes/brand';
 import { intelRoutes } from './routes/intel';
 import { monitorRoutes } from './routes/monitor';
 import { reportsRoutes } from './routes/reports';
+import { versionRoutes } from './routes/version';
 import { setupQueues, connection, getIntelQueue, getCrawlQueue, getMonitorQueue, getBrandQueue } from './queue/setup';
 import { startMonitorScheduler } from './monitoring/scheduler';
 import { startCrawlWorker } from './queue/workers/crawlWorker';
 import { startIntelWorker } from './queue/workers/intelWorker';
 import { startMonitorWorker } from './queue/workers/monitorWorker';
 import { setupRequestLogger } from './middleware/requestLogger';
+import { resolveBrand } from './brand/resolver';
 
 const app = Fastify({ logger: true });
 
@@ -29,8 +31,18 @@ async function bootstrap() {
   await app.register(intelRoutes, { prefix: '/v1/intel' });
   await app.register(monitorRoutes, { prefix: '/v1/monitor' });
   await app.register(reportsRoutes, { prefix: '/v1/reports' });
+  await app.register(versionRoutes, { prefix: '/v1/versions' });
 
   app.get('/health', async () => ({ status: 'ok', ts: Date.now() }));
+
+  app.get('/v1/logo/:domain', async (req, reply) => {
+    try {
+      const { domain } = req.params as { domain: string };
+      const brand = await resolveBrand(domain);
+      if (!brand || !brand.logoUrl) return reply.status(404).send({ error: 'Logo not found' });
+      return reply.redirect(brand.logoUrl);
+    } catch { return reply.status(404).send({ error: 'Logo not found' }); }
+  });
 
   await setupQueues();
   startIntelWorker();

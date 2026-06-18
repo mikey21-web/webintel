@@ -20,12 +20,56 @@ async function brandHandler(domain: string, handler: (brand: any) => any) {
 }
 
 export async function brandRoutes(app: FastifyInstance) {
+  app.get('/logo/:domain', async (req, reply) => {
+    try {
+      const { domain } = req.params as { domain: string };
+      const brand = await resolveBrand(domain);
+      if (!brand || !brand.logoUrl) {
+        return reply.status(404).send({ error: 'Logo not found' });
+      }
+      return reply.redirect(brand.logoUrl);
+    } catch {
+      return reply.status(404).send({ error: 'Logo not found' });
+    }
+  });
+
+  app.get('/classify', { preHandler: requireAuth }, async (req, reply) => {
+    try {
+      const { domain } = req.query as { domain: string };
+      return await brandHandler(domain, (brand) => ({
+        domain: brand.domain,
+        industry: brand.industry,
+        category: brand.category,
+        naicsCode: brand.naicsCode,
+        eicCode: brand.eicCode,
+        eicSubindustry: brand.eicSubindustry,
+      }));
+    } catch (err: any) {
+      return reply.status(err.statusCode || 500).send({ error: err.message });
+    }
+  });
+
   app.get('/profile', { preHandler: requireAuth }, async (req, reply) => {
     try {
       const { domain } = req.query as { domain: string };
       return await brandHandler(domain, (brand) => ({
         domain: brand.domain, brandName: brand.description, logoUrl: brand.logoUrl,
         description: brand.description, industry: brand.industry, data: brand,
+      }));
+    } catch (err: any) {
+      return reply.status(err.statusCode || 500).send({ error: err.message });
+    }
+  });
+
+  app.get('/retrieve-simplified', { preHandler: requireAuth }, async (req, reply) => {
+    try {
+      const { domain } = req.query as { domain: string };
+      return await brandHandler(domain, (brand) => ({
+        domain: brand.domain,
+        title: brand.description,
+        colors: brand.palette || [],
+        logos: brand.logoUrl ? [{ url: brand.logoUrl, mode: 'light', type: 'logo' }] : [],
+        backdrops: [],
       }));
     } catch (err: any) {
       return reply.status(err.statusCode || 500).send({ error: err.message });
@@ -144,6 +188,106 @@ If you cannot identify the merchant, return {"brandName": null, "domain": null, 
         domain: result.domain || null,
         confidence: typeof result.confidence === 'number' ? result.confidence : 0,
       };
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  app.get('/retrieve-name', { preHandler: requireAuth }, async (req, reply) => {
+    try {
+      const { name } = req.query as { name: string };
+      if (!name || name.length < 3 || name.length > 30) {
+        return reply.status(400).send({ error: 'name must be between 3-30 characters' });
+      }
+      const resolved = await askAI<{ domain: string | null }>(
+        'You are a domain resolution expert.',
+        `Given the company name "${name}", return the most likely website domain.
+         Return ONLY JSON: {"domain": "company.com"} or {"domain": null} if unsure.`
+      );
+      if (!resolved?.domain) {
+        return reply.status(404).send({ error: 'Could not resolve name to domain' });
+      }
+      return await brandHandler(resolved.domain, (brand) => ({
+        domain: brand.domain, brandName: brand.description, logoUrl: brand.logoUrl,
+        description: brand.description, industry: brand.industry, data: brand,
+      }));
+    } catch (err: any) {
+      return reply.status(err.statusCode || 500).send({ error: err.message });
+    }
+  });
+
+  app.get('/retrieve-email', { preHandler: requireAuth }, async (req, reply) => {
+    try {
+      const { email } = req.query as { email: string };
+      if (!email || !email.includes('@')) {
+        return reply.status(400).send({ error: 'Valid email is required' });
+      }
+      const freeProviders = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com', 'icloud.com', 'proton.me', 'protonmail.com', 'mail.com', 'zoho.com'];
+      const domain = email.split('@')[1].toLowerCase();
+      if (freeProviders.includes(domain)) {
+        return reply.status(422).send({ error: 'Free email provider detected', domain });
+      }
+      return await brandHandler(domain, (brand) => ({
+        domain: brand.domain, brandName: brand.description, logoUrl: brand.logoUrl,
+        description: brand.description, industry: brand.industry, data: brand,
+      }));
+    } catch (err: any) {
+      return reply.status(err.statusCode || 500).send({ error: err.message });
+    }
+  });
+
+  app.get('/retrieve-ticker', { preHandler: requireAuth }, async (req, reply) => {
+    try {
+      const { ticker } = req.query as { ticker: string };
+      if (!ticker || ticker.length > 10) {
+        return reply.status(400).send({ error: 'Valid ticker symbol is required' });
+      }
+      const resolved = await askAI<{ domain: string | null; companyName: string | null }>(
+        'You are a stock market expert.',
+        `Given the stock ticker "${ticker.toUpperCase()}", identify the company.
+         Return ONLY JSON: {"domain": "company.com", "companyName": "Company Name"}
+         or {"domain": null, "companyName": null} if unsure.`
+      );
+      if (!resolved?.domain) {
+        return reply.status(404).send({ error: 'Could not resolve ticker to domain' });
+      }
+      return await brandHandler(resolved.domain, (brand) => ({
+        domain: brand.domain, brandName: brand.description, ticker: ticker.toUpperCase(),
+        logoUrl: brand.logoUrl, description: brand.description, industry: brand.industry, data: brand,
+      }));
+    } catch (err: any) {
+      return reply.status(err.statusCode || 500).send({ error: err.message });
+    }
+  });
+
+  app.post('/prefetch', { preHandler: [requireAuth] }, async (req, reply) => {
+    try {
+      const { domain } = req.body as { domain: string };
+      if (!domain) return reply.status(400).send({ error: 'domain is required' });
+      if (req.userPlan === 'free') {
+        return reply.status(402).send({ error: 'Prefetch requires a paid plan' });
+      }
+      resolveBrand(domain).catch(() => {});
+      return reply.send({ status: 'ok', message: `Prefetch initiated for ${domain}`, domain });
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  app.post('/prefetch-by-email', { preHandler: [requireAuth] }, async (req, reply) => {
+    try {
+      const { email } = req.body as { email: string };
+      if (!email || !email.includes('@')) return reply.status(400).send({ error: 'Valid email is required' });
+      const freeProviders = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com', 'icloud.com', 'proton.me', 'protonmail.com', 'mail.com'];
+      const domain = email.split('@')[1].toLowerCase();
+      if (freeProviders.includes(domain)) {
+        return reply.status(422).send({ error: 'Free email provider detected', domain });
+      }
+      if (req.userPlan === 'free') {
+        return reply.status(402).send({ error: 'Prefetch requires a paid plan' });
+      }
+      resolveBrand(domain).catch(() => {});
+      return reply.send({ status: 'ok', message: `Prefetch initiated for ${domain}`, domain });
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
     }

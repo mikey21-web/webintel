@@ -147,6 +147,146 @@ program.command('brand')
     if (data.address) console.log(`\n${chalk.cyan('Address:')} ${data.address}`);
   });
 
+// --- web ---
+const webCmd = program.command('web').description('Web scraping and extraction commands');
+
+webCmd.command('scrape')
+  .description('Scrape a URL to markdown')
+  .argument('<url>', 'URL to scrape')
+  .option('-j, --json', 'Output as JSON')
+  .action(async (url, opts) => {
+    const data = await apiFetch('/v1/web/scrape/markdown', {
+      method: 'POST',
+      body: { url },
+      label: `Scraping ${url}...`,
+    });
+    if (opts.json) return printJson(data);
+    console.log(`\n${chalk.bold('Source:')} ${data.source}`);
+    console.log(`${chalk.bold('Title:')} ${data.metadata?.title || 'N/A'}`);
+    console.log(`\n${data.markdown?.slice(0, 3000)}${data.markdown?.length > 3000 ? '...' : ''}`);
+  });
+
+webCmd.command('extract')
+  .description('Extract structured data from a URL')
+  .argument('<url>', 'URL to extract from')
+  .option('-s, --schema <schema>', 'JSON Schema as string')
+  .option('-j, --json', 'Output as JSON')
+  .action(async (url, opts) => {
+    const body = { url };
+    if (opts.schema) {
+      try { body.schema = JSON.parse(opts.schema); } catch { console.error(chalk.red('Invalid JSON schema')); process.exit(1); }
+    }
+    const data = await apiFetch('/v1/web/extract', {
+      method: 'POST',
+      body,
+      label: `Extracting from ${url}...`,
+    });
+    if (opts.json) return printJson(data);
+    console.log(`\n${chalk.bold('Extracted Data:')}`);
+    const extracted = data.data || data.extracted || data;
+    printJson(extracted);
+  });
+
+webCmd.command('search')
+  .description('Search the web')
+  .argument('<query>', 'Search query')
+  .option('-n, --num-results <number>', 'Number of results', '10')
+  .option('-j, --json', 'Output as JSON')
+  .action(async (query, opts) => {
+    const data = await apiFetch('/v1/web/search', {
+      method: 'POST',
+      body: { query, numResults: parseInt(opts.numResults) },
+      label: `Searching for "${query}"...`,
+    });
+    if (opts.json) return printJson(data);
+    const results = data.results || [];
+    if (!results.length) {
+      console.log(chalk.yellow('No results found.'));
+      return;
+    }
+    console.log(`\n${chalk.bold(`Search results for "${query}"`)} (${results.length})`);
+    results.forEach((r, i) => {
+      console.log(`\n${chalk.cyan(`${i + 1}. ${r.title}`)}`);
+      console.log(`   ${chalk.dim(r.url)}`);
+      if (r.snippet) console.log(`   ${r.snippet.slice(0, 200)}`);
+    });
+  });
+
+webCmd.command('crawl')
+  .description('Crawl a domain')
+  .argument('<url>', 'Starting URL')
+  .option('-m, --max-pages <number>', 'Max pages', '50')
+  .option('-j, --json', 'Output as JSON')
+  .action(async (url, opts) => {
+    const data = await apiFetch('/v1/web/crawl', {
+      method: 'POST',
+      body: { url, maxPages: parseInt(opts.maxPages) },
+      label: `Crawling ${url}...`,
+    });
+    if (opts.json) return printJson(data);
+    console.log(`\n${chalk.bold('Crawl Job Created')}`);
+    console.log(`  ${chalk.cyan('Job ID:')} ${data.jobId}`);
+    console.log(`  ${chalk.cyan('Status:')} ${data.status}`);
+    console.log(`\n  ${chalk.dim('Check status: webintel web crawl-status ' + data.jobId)}`);
+  });
+
+webCmd.command('crawl-status')
+  .description('Check crawl job status')
+  .argument('<jobId>', 'Job ID')
+  .option('-j, --json', 'Output as JSON')
+  .action(async (jobId, opts) => {
+    const data = await apiFetch(`/v1/web/crawl/${jobId}`, { label: 'Checking crawl status...' });
+    if (opts.json) return printJson(data);
+    console.log(`\n${chalk.bold('Crawl Job Status')}`);
+    console.log(`  ${chalk.cyan('Status:')} ${data.status}`);
+    console.log(`  ${chalk.cyan('Pages:')} ${data.pagesCrawled || 0}`);
+    if (data.error) console.log(`  ${chalk.red('Error:')} ${data.error}`);
+  });
+
+webCmd.command('sitemap')
+  .description('Extract sitemap URLs from a domain')
+  .argument('<url>', 'URL of sitemap or domain')
+  .option('-j, --json', 'Output as JSON')
+  .action(async (url, opts) => {
+    const data = await apiFetch('/v1/web/sitemap', {
+      method: 'POST',
+      body: { url },
+      label: `Fetching sitemap for ${url}...`,
+    });
+    if (opts.json) return printJson(data);
+    console.log(`\n${chalk.bold(`Sitemap: ${data.count} URLs found`)}`);
+    (data.urls || []).slice(0, 20).forEach(u => console.log(`  ${chalk.dim(u)}`));
+    if (data.count > 20) console.log(`  ${chalk.dim(`...and ${data.count - 20} more`)}`);
+  });
+
+// --- extract-competitors ---
+program.command('extract-competitors')
+  .description('Identify direct competitors for a domain')
+  .argument('<domain>', 'Domain to analyze')
+  .option('-n, --num-competitors <number>', 'Number of competitors', '5')
+  .option('-j, --json', 'Output as JSON')
+  .action(async (domain, opts) => {
+    const data = await apiFetch('/v1/intel/competitor', {
+      method: 'POST',
+      body: { domain, wait: true },
+      label: `Analyzing competitors for ${domain}...`,
+    });
+    if (opts.json) return printJson(data);
+    const competitors = data.result?.competitors || data.competitors || [];
+    if (!competitors.length) {
+      console.log(chalk.yellow('No competitors found.'));
+      return;
+    }
+    console.log(`\n${chalk.bold.hex('#6366f1')(`${competitors.length} Competitors for ${domain}`)}`);
+    competitors.forEach((c, i) => {
+      console.log(`\n${chalk.cyan(`${i + 1}. ${c.name || c.domain}`)}`);
+      if (c.domain) console.log(`   ${chalk.dim(c.domain)}`);
+      if (c.description) console.log(`   ${c.description.slice(0, 200)}`);
+      if (c.marketShare) console.log(`   ${chalk.yellow('Market Share:')} ${c.marketShare}`);
+      if (c.similarity) console.log(`   ${chalk.yellow('Similarity:')} ${c.similarity}`);
+    });
+  });
+
 // --- compare ---
 program.command('compare')
   .description('Compare multiple domains side by side')

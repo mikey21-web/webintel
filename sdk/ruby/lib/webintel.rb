@@ -1,0 +1,108 @@
+require "httparty"
+
+class WebIntel
+  include HTTParty
+
+  def initialize(api_key, base_url = "https://api.webintel.dev")
+    @api_key = api_key
+    self.class.base_uri(base_url)
+    self.class.headers("Authorization" => "Bearer #{api_key}", "Content-Type" => "application/json")
+  end
+
+  # Private request helper
+  private
+
+  def post(path, body = {})
+    response = self.class.post(path, body: body.to_json)
+    raise response.parsed_response["error"] || "HTTP #{response.code}" unless response.success?
+    response.parsed_response
+  end
+
+  def get(path)
+    response = self.class.get(path)
+    raise response.parsed_response["error"] || "HTTP #{response.code}" unless response.success?
+    response.parsed_response
+  end
+
+  public
+
+  def scrape(url, use_js: nil, wait_for: nil)
+    post("/v1/web/scrape/markdown", { url: url, useJs: use_js, waitFor: wait_for }.compact)
+  end
+
+  def scrape_html(url)
+    post("/v1/web/scrape/html", { url: url })
+  end
+
+  def sitemap(url)
+    post("/v1/web/sitemap", { url: url })
+  end
+
+  def screenshot(url, full_page: nil, wait_for: nil)
+    post("/v1/web/screenshot", { url: url, fullPage: full_page, waitFor: wait_for }.compact)
+  end
+
+  def extract(url, schema: nil, prompt: nil)
+    post("/v1/web/extract", { url: url, schema: schema, prompt: prompt }.compact)
+  end
+
+  def crawl(url, max_pages: nil, webhook_url: nil)
+    post("/v1/web/crawl", { url: url, maxPages: max_pages, webhookUrl: webhook_url }.compact)
+  end
+
+  def get_crawl_job(job_id)
+    get("/v1/web/crawl/#{job_id}")
+  end
+
+  def search(query, num_results: nil)
+    post("/v1/web/search", { query: query, numResults: num_results }.compact)
+  end
+
+  def query(url, question)
+    post("/v1/web/query", { url: url, question: question })
+  end
+
+  def brand_profile(domain)
+    get("/v1/brand/profile?domain=#{CGI.escape(domain)}")
+  end
+
+  def brand_logo(domain)
+    get("/v1/brand/logo?domain=#{CGI.escape(domain)}")
+  end
+
+  def brand_colors(domain)
+    get("/v1/brand/colors?domain=#{CGI.escape(domain)}")
+  end
+
+  def brand_fonts(domain)
+    get("/v1/brand/fonts?domain=#{CGI.escape(domain)}")
+  end
+
+  def brand_socials(domain)
+    get("/v1/brand/socials?domain=#{CGI.escape(domain)}")
+  end
+
+  def brand_tech_stack(domain)
+    get("/v1/brand/techstack?domain=#{CGI.escape(domain)}")
+  end
+
+  def brand_styleguide(domain)
+    get("/v1/brand/styleguide?domain=#{CGI.escape(domain)}")
+  end
+
+  def brand_address(domain)
+    get("/v1/brand/address?domain=#{CGI.escape(domain)}")
+  end
+
+  def classify(domain)
+    get("/v1/brand/classify?domain=#{CGI.escape(domain)}")
+  end
+
+  def logo_url(domain)
+    "#{self.class.base_uri}/v1/logo/#{domain}"
+  end
+
+  def health
+    get("/health")
+  end
+end

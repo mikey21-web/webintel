@@ -51,6 +51,8 @@ export const brandCache = pgTable('brand_cache', {
   category: text('category'),
   industry: text('industry'),
   naicsCode: text('naics_code'),
+  eicCode: text('eic_code'),
+  eicSubindustry: text('eic_subindustry'),
   address: text('address'),
   city: text('city'),
   state: text('state'),
