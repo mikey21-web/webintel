@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { connection } from '../queue/setup';
 
-const PLAN_LIMITS: Record<string, number> = { free: 30, starter: 120, pro: 300, scale: 1200 };
+export const PLAN_LIMITS: Record<string, number> = { free: 30, starter: 120, pro: 300, scale: 1200 };
 
 export function rateLimit() {
   return async (request: FastifyRequest, reply: FastifyReply) => {

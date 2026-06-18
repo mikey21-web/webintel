@@ -54,6 +54,19 @@ export async function requireAuth(request: FastifyRequest, reply: FastifyReply) 
   }
 
   request.userId = jwtPayload.sub;
-  request.userPlan = 'pro';
   request.authMethod = 'jwt';
+
+  const [jwtKeyRow] = await db
+    .select({ id: apiKeys.id, plan: users.plan })
+    .from(apiKeys)
+    .innerJoin(users, eq(apiKeys.userId, users.id))
+    .where(and(eq(apiKeys.userId, jwtPayload.sub), eq(apiKeys.revoked, false)))
+    .limit(1);
+
+  if (jwtKeyRow) {
+    request.apiKeyId = jwtKeyRow.id!;
+    request.userPlan = jwtKeyRow.plan!;
+  } else {
+    request.userPlan = 'pro';
+  }
 }

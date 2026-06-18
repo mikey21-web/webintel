@@ -64,11 +64,11 @@ async function enqueueAndPoll(module: string, input: Record<string, any>, apiKey
   delete input.wait;
   const [job] = await db.insert(intelJobs).values({
     module,
-    input: input as any,
+    input,
     status: 'queued',
-    apiKeyId: apiKeyId as any,
+    apiKeyId,
     webhookUrl: webhookUrl ?? null,
-  } as any).returning();
+  }).returning();
   const queue = getIntelQueue();
   await queue.add('intel', { jobId: job.id, module, input, webhookUrl });
   if (wait) {

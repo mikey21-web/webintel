@@ -20,6 +20,8 @@ const envSchema = z.object({
   SUPABASE_ANON_KEY: z.string().optional(),
   SUPABASE_JWT_SECRET: z.string().optional(),
   SUPABASE_JWK: z.string().optional(),
+  SCOPED_JWT_SECRET: z.string().optional(),
+  WEBHOOK_SECRET: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

@@ -264,7 +264,7 @@ export class WebIntel implements INodeType {
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'X-API-Key': apiKey,
+      'Authorization': `Bearer ${apiKey}`,
     };
 
     for (let i = 0; i < items.length; i++) {

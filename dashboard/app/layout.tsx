@@ -2,22 +2,41 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import SupabaseProvider from '@/components/SupabaseProvider';
-import Navbar from '@/components/Navbar';
+import { ToastProvider } from '@/components/Toast';
 
 const inter = Inter({ subsets: ['latin'] });
+
+const darkModeScript = `
+  if (localStorage.getItem('darkMode') === 'true' ||
+     (!localStorage.getItem('darkMode') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    document.documentElement.classList.add('dark');
+  }
+`;
 
 export const metadata: Metadata = {
   title: 'WebIntel — Autonomous Market Intelligence',
   description: 'AI-powered competitive intelligence platform. Monitor competitors, map markets, and generate sales briefs automatically.',
+  keywords: 'competitive intelligence, market research, AI monitoring, competitor analysis, sales intelligence',
+  openGraph: {
+    title: 'WebIntel — Autonomous Market Intelligence',
+    description: 'AI-powered competitive intelligence platform. Monitor competitors, map markets, and generate sales briefs automatically.',
+    type: 'website',
+    siteName: 'WebIntel',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={inter.className}>
+    <html lang="en" className={inter.className} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: darkModeScript }} />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+      </head>
       <body>
         <SupabaseProvider>
-          <Navbar />
-          {children}
+          <ToastProvider>
+            {children}
+          </ToastProvider>
         </SupabaseProvider>
       </body>
     </html>

@@ -10,26 +10,6 @@ export interface JwtPayload {
   exp?: number;
 }
 
-function decodeBase64Url(str: string): string {
-  try {
-    return Buffer.from(str.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf-8');
-  } catch {
-    return '';
-  }
-}
-
-export function parseUnsafe(token: string): JwtPayload | null {
-  try {
-    const parts = token.split('.');
-    if (parts.length !== 3) return null;
-    const payload = JSON.parse(decodeBase64Url(parts[1]));
-    if (!payload.sub) return null;
-    return payload as JwtPayload;
-  } catch {
-    return null;
-  }
-}
-
 let jwkKey: any = null;
 
 function getJwk(): any {
@@ -62,15 +42,25 @@ async function getVerificationKey(): Promise<any> {
 
 export async function verify(token: string): Promise<JwtPayload | null> {
   const key = await getVerificationKey();
-  if (key) {
-    try {
-      const { payload } = await jwtVerify(token, key);
-      return payload as unknown as JwtPayload;
-    } catch {
-      return parseUnsafe(token);
-    }
+  if (!key) return null;
+  try {
+    const { payload } = await jwtVerify(token, key);
+    return payload as unknown as JwtPayload;
+  } catch {
+    return null;
   }
-  return parseUnsafe(token);
+}
+
+export function parseUnsafe(token: string): JwtPayload | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(atob(parts[1]));
+    if (!payload || !payload.sub) return null;
+    return payload as JwtPayload;
+  } catch {
+    return null;
+  }
 }
 
 export function isAnonKey(token: string): boolean {
@@ -79,7 +69,7 @@ export function isAnonKey(token: string): boolean {
   return token === anonKey;
 }
 
-const SCOPED_SECRET = new TextEncoder().encode('webintel-scoped-jwt-secret-v1');
+const SCOPED_SECRET = new TextEncoder().encode(config.SCOPED_JWT_SECRET || 'webintel-scoped-jwt-secret-v1');
 
 export async function createScopedToken(userId: string, email: string): Promise<string> {
   return new SignJWT({ sub: userId, email, aud: 'authenticated', role: 'authenticated' })

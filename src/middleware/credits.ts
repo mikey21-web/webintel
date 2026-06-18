@@ -3,6 +3,12 @@ import { db } from '../db/client';
 import { creditBalances, usageLogs } from '../db/schema';
 import { eq, sql } from 'drizzle-orm';
 
+declare module 'fastify' {
+  interface FastifyRequest {
+    creditsCost?: number;
+  }
+}
+
 export function checkCredits(cost: number) {
   return async (request: FastifyRequest, reply: FastifyReply) => {
     if (!request.userId) return reply.status(401).send({ error: 'Unauthorized' });
@@ -20,6 +26,8 @@ export function checkCredits(cost: number) {
     await db.update(creditBalances)
       .set({ creditsRemaining: sql`credits_remaining - ${cost}`, creditsUsedCycle: sql`credits_used_cycle + ${cost}` })
       .where(eq(creditBalances.userId, request.userId));
+
+    request.creditsCost = cost;
   };
 }
 

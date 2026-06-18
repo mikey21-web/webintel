@@ -26,16 +26,18 @@ export default function SupabaseProvider({ children }: { children: React.ReactNo
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [credits, setCredits] = useState({ total: 1000, remaining: 842 });
+  const [credits, setCredits] = useState({ total: 0, remaining: 0 });
 
   const refreshCredits = useCallback(async () => {
     try {
-      const res = await fetch('/api/webintel?path=v1/auth/me', { credentials: 'include' });
+      const res = await fetch('/api/webintel?path=v1/usage');
       if (res.ok) {
         const data = await res.json();
-        if (data.credits) setCredits(data.credits);
+        setCredits({ total: data.total ?? 0, remaining: data.remaining ?? 0 });
       }
-    } catch {}
+    } catch (err) {
+      console.error('Failed to fetch credits:', err);
+    }
   }, []);
 
   useEffect(() => {

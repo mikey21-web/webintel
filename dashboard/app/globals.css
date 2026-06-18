@@ -2,6 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  @apply bg-gray-50 text-gray-900;
+@layer base {
+  body {
+    @apply antialiased;
+  }
+
+  :root {
+    --brand-50: #f0f4ff;
+    --brand-500: #5c7cfa;
+    --brand-700: #4263eb;
+  }
+}
+
+.dark body {
+  @apply bg-gray-950 text-gray-100;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 dark:bg-gray-700 rounded-full;
 }

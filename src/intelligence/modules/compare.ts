@@ -1,7 +1,5 @@
-import Anthropic from '@anthropic-ai/sdk';
 import { sidecarScrape } from '../../scraping/sidecar';
-
-const client = new Anthropic();
+import { askAI } from '../../ai';
 
 export async function runCompare(domains: string[]) {
   if (domains.length < 2 || domains.length > 5) {
@@ -25,13 +23,9 @@ export async function runCompare(domains: string[]) {
 
   const context = contents.map(c => `=== ${c.domain} ===\n${c.content}`).join('\n\n');
 
-  const msg = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 2000,
-    system: 'You are a competitive intelligence analyst. Compare companies side by side. Respond ONLY with valid JSON.',
-    messages: [{
-      role: 'user',
-      content: `Compare these companies side by side.
+  const result = await askAI<any>(
+    'You are a competitive intelligence analyst. Compare companies side by side. Respond ONLY with valid JSON.',
+    `Compare these companies side by side.
 
 ${context}
 
@@ -52,10 +46,8 @@ Respond with this exact JSON:
   "weaknessMap": { "domain1": "string — their biggest gap", "domain2": "..." },
   "recommendation": "string — who wins and why",
   "overallScores": { "domain1": number 1-10, "domain2": number 1-10 }
-}`,
-    }],
-  });
+}`
+  );
 
-  const text = (msg.content[0] as { type: 'text'; text: string }).text;
-  return { domains, comparedAt: new Date().toISOString(), ...JSON.parse(text.replace(/```json|```/g, '').trim()) };
+  return { domains, comparedAt: new Date().toISOString(), ...result };
 }

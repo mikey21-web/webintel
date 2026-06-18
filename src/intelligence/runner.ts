@@ -1,6 +1,7 @@
 import { db } from '../db/client';
 import { intelJobs } from '../db/schema';
 import { eq } from 'drizzle-orm';
+import { config } from '../config';
 import { runCompetitorIntel } from './modules/competitor';
 import { runMarketMap } from './modules/marketMap';
 import { runLeadIntel } from './modules/leadIntel';
@@ -12,7 +13,7 @@ import { runEnrich } from './modules/enrich';
 import crypto from 'crypto';
 
 async function deliverWebhook(url: string, payload: any, jobId: string) {
-  const signature = crypto.createHmac('sha256', 'webintel-webhook-secret').update(JSON.stringify(payload)).digest('hex');
+  const signature = crypto.createHmac('sha256', config.WEBHOOK_SECRET || 'webintel-webhook-secret').update(JSON.stringify(payload)).digest('hex');
   for (let i = 0; i < 3; i++) {
     try {
       const res = await fetch(url, {
@@ -25,7 +26,7 @@ async function deliverWebhook(url: string, payload: any, jobId: string) {
         await db.update(intelJobs).set({ webhookStatus: 'delivered' }).where(eq(intelJobs.id, jobId));
         return;
       }
-    } catch {}
+    } catch (err) { console.error('Webhook delivery failed:', err); }
     if (i < 2) await new Promise(r => setTimeout(r, [5000, 25000, 125000][i]));
   }
   await db.update(intelJobs).set({ webhookStatus: 'failed' }).where(eq(intelJobs.id, jobId));

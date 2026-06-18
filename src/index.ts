@@ -8,8 +8,11 @@ import { brandRoutes } from './routes/brand';
 import { intelRoutes } from './routes/intel';
 import { monitorRoutes } from './routes/monitor';
 import { reportsRoutes } from './routes/reports';
-import { setupQueues } from './queue/setup';
+import { setupQueues, connection, getIntelQueue, getCrawlQueue, getMonitorQueue, getBrandQueue } from './queue/setup';
 import { startMonitorScheduler } from './monitoring/scheduler';
+import { startCrawlWorker } from './queue/workers/crawlWorker';
+import { startIntelWorker } from './queue/workers/intelWorker';
+import { startMonitorWorker } from './queue/workers/monitorWorker';
 import { setupRequestLogger } from './middleware/requestLogger';
 
 const app = Fastify({ logger: true });
@@ -30,6 +33,9 @@ async function bootstrap() {
   app.get('/health', async () => ({ status: 'ok', ts: Date.now() }));
 
   await setupQueues();
+  startIntelWorker();
+  startCrawlWorker();
+  startMonitorWorker();
   startMonitorScheduler();
 
   await app.listen({ port: config.PORT, host: '0.0.0.0' });
@@ -37,3 +43,19 @@ async function bootstrap() {
 }
 
 bootstrap().catch(err => { console.error(err); process.exit(1); });
+
+async function shutdown(signal: string) {
+  console.log(`Received ${signal}, shutting down gracefully...`);
+  try {
+    await app.close();
+    const queues = [getIntelQueue(), getCrawlQueue(), getMonitorQueue(), getBrandQueue()];
+    await Promise.allSettled(queues.map(q => q.close()));
+    await connection.quit();
+  } catch (err) {
+    console.error('Shutdown error:', err);
+  }
+  process.exit(0);
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));

@@ -4,113 +4,121 @@ import { buildWhatsAppTheme } from '../brand/whatsapp';
 import { requireAuth } from '../middleware/auth';
 import { askAI } from '../ai';
 
+async function brandHandler(domain: string, handler: (brand: any) => any) {
+  if (!domain) {
+    const err = new Error('domain query parameter is required');
+    (err as any).statusCode = 400;
+    throw err;
+  }
+  const brand = await resolveBrand(domain);
+  if (!brand) {
+    const err = new Error('Brand not found');
+    (err as any).statusCode = 404;
+    throw err;
+  }
+  return handler(brand);
+}
+
 export async function brandRoutes(app: FastifyInstance) {
   app.get('/profile', { preHandler: requireAuth }, async (req, reply) => {
     try {
       const { domain } = req.query as { domain: string };
-      if (!domain) return reply.status(400).send({ error: 'domain query parameter is required' });
-      const brand = await resolveBrand(domain);
-      return { domain: brand.domain, brandName: brand.description, logoUrl: brand.logoUrl, description: brand.description, industry: brand.industry, data: brand };
+      return await brandHandler(domain, (brand) => ({
+        domain: brand.domain, brandName: brand.description, logoUrl: brand.logoUrl,
+        description: brand.description, industry: brand.industry, data: brand,
+      }));
     } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
+      return reply.status(err.statusCode || 500).send({ error: err.message });
     }
   });
 
   app.get('/logo', { preHandler: requireAuth }, async (req, reply) => {
     try {
       const { domain } = req.query as { domain: string };
-      if (!domain) return reply.status(400).send({ error: 'domain query parameter is required' });
-      const brand = await resolveBrand(domain);
-      return { domain: brand.domain, logoUrl: brand.logoUrl, details: brand.logoVariants || null };
+      return await brandHandler(domain, (brand) => ({
+        domain: brand.domain, logoUrl: brand.logoUrl, details: brand.logoVariants || null,
+      }));
     } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
+      return reply.status(err.statusCode || 500).send({ error: err.message });
     }
   });
 
   app.get('/colors', { preHandler: requireAuth }, async (req, reply) => {
     try {
       const { domain } = req.query as { domain: string };
-      if (!domain) return reply.status(400).send({ error: 'domain query parameter is required' });
-      const brand = await resolveBrand(domain);
-      return { domain: brand.domain, primary: brand.primaryColor, palette: brand.palette || [] };
+      return await brandHandler(domain, (brand) => ({
+        domain: brand.domain, primary: brand.primaryColor, palette: brand.palette || [],
+      }));
     } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
+      return reply.status(err.statusCode || 500).send({ error: err.message });
     }
   });
 
   app.get('/fonts', { preHandler: requireAuth }, async (req, reply) => {
     try {
       const { domain } = req.query as { domain: string };
-      if (!domain) return reply.status(400).send({ error: 'domain query parameter is required' });
-      const brand = await resolveBrand(domain);
-      const fonts = brand.fonts || [];
-      return { domain: brand.domain, fonts };
+      return await brandHandler(domain, (brand) => ({
+        domain: brand.domain, fonts: brand.fonts || [],
+      }));
     } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
+      return reply.status(err.statusCode || 500).send({ error: err.message });
     }
   });
 
   app.get('/styleguide', { preHandler: requireAuth }, async (req, reply) => {
     try {
       const { domain } = req.query as { domain: string };
-      if (!domain) return reply.status(400).send({ error: 'domain query parameter is required' });
-      const brand = await resolveBrand(domain);
-      return { domain: brand.domain, primary: brand.primaryColor, palette: brand.palette || [], styleguide: brand.styleguide || {} };
+      return await brandHandler(domain, (brand) => ({
+        domain: brand.domain, primary: brand.primaryColor, palette: brand.palette || [],
+        styleguide: brand.styleguide || {},
+      }));
     } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
+      return reply.status(err.statusCode || 500).send({ error: err.message });
     }
   });
 
   app.get('/socials', { preHandler: requireAuth }, async (req, reply) => {
     try {
       const { domain } = req.query as { domain: string };
-      if (!domain) return reply.status(400).send({ error: 'domain query parameter is required' });
-      const brand = await resolveBrand(domain);
-      const socials = brand.socials || {};
-      return { domain: brand.domain, socials };
+      return await brandHandler(domain, (brand) => ({
+        domain: brand.domain, socials: brand.socials || {},
+      }));
     } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
+      return reply.status(err.statusCode || 500).send({ error: err.message });
     }
   });
 
   app.get('/address', { preHandler: requireAuth }, async (req, reply) => {
     try {
       const { domain } = req.query as { domain: string };
-      if (!domain) return reply.status(400).send({ error: 'domain query parameter is required' });
-      const brand = await resolveBrand(domain);
-      return {
-        domain: brand.domain,
-        address: brand.address || null,
-        city: brand.city || null,
-        state: brand.state || null,
-        pincode: brand.pincode || null,
-      };
+      return await brandHandler(domain, (brand) => ({
+        domain: brand.domain, address: brand.address || null,
+        city: brand.city || null, state: brand.state || null, pincode: brand.pincode || null,
+      }));
     } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
+      return reply.status(err.statusCode || 500).send({ error: err.message });
     }
   });
 
   app.get('/techstack', { preHandler: requireAuth }, async (req, reply) => {
     try {
       const { domain } = req.query as { domain: string };
-      if (!domain) return reply.status(400).send({ error: 'domain query parameter is required' });
-      const brand = await resolveBrand(domain);
-      const techstack = brand.techStack || [];
-      return { domain: brand.domain, techstack };
+      return await brandHandler(domain, (brand) => ({
+        domain: brand.domain, techstack: brand.techStack || [],
+      }));
     } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
+      return reply.status(err.statusCode || 500).send({ error: err.message });
     }
   });
 
   app.get('/whatsapp-theme', { preHandler: requireAuth }, async (req, reply) => {
     try {
       const { domain } = req.query as { domain: string };
-      if (!domain) return reply.status(400).send({ error: 'domain query parameter is required' });
-      const brand = await resolveBrand(domain);
-      const theme = buildWhatsAppTheme(brand.primaryColor || null, brand.logoUrl || null);
-      return { domain: brand.domain, theme };
+      return await brandHandler(domain, (brand) => ({
+        domain: brand.domain, theme: buildWhatsAppTheme(brand.primaryColor || null, brand.logoUrl || null),
+      }));
     } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
+      return reply.status(err.statusCode || 500).send({ error: err.message });
     }
   });
 

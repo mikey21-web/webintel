@@ -8,6 +8,7 @@ import { responseCache } from '../middleware/cache';
 import { sidecarScrape } from '../scraping/sidecar';
 import { uploadToR2 as r2Upload, getFromR2 as r2Get, r2PublicUrl } from '../storage/r2';
 import { getCrawlQueue } from '../queue/setup';
+import { askAI } from '../ai';
 import { eq, sql } from 'drizzle-orm';
 import crypto from 'crypto';
 
@@ -215,7 +216,6 @@ function extractSitemapUrls(markdown: string, baseUrl: string): string[] {
 }
 
 async function runExtraction(markdown: string, prompt?: string): Promise<Record<string, any>> {
-  const { askAI } = await import('../ai');
   const systemPrompt = prompt
     ? `Extract the following information from the page content. Return JSON only.\n\n${prompt}`
     : 'Extract all structured data from this page: company name, description, email, phone, social links, pricing, and key features. Return JSON only.';
@@ -228,7 +228,6 @@ async function runExtraction(markdown: string, prompt?: string): Promise<Record<
 }
 
 async function answerQuestion(markdown: string, question: string): Promise<string> {
-  const { askAI } = await import('../ai');
   try {
     return await askAI<string>(
       'Answer concisely based on the page content.',

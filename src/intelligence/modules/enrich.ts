@@ -1,7 +1,5 @@
-import Anthropic from '@anthropic-ai/sdk';
 import { sidecarScrape } from '../../scraping/sidecar';
-
-const client = new Anthropic();
+import { askAI } from '../../ai';
 
 const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
 const PHONE_REGEX = /(?:\+91[-\s]?)?(?:\d[-\s]?){10,11}/g;
@@ -47,14 +45,10 @@ export async function runEnrich(domain: string) {
   // Extract Indian phone numbers
   const phones = [...new Set([...allMarkdown.matchAll(INDIAN_MOBILE)].map(m => m[0]))];
 
-  // Use Claude to validate + find decision makers
-  const msg = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 500,
-    system: 'Extract contact information from business websites. Respond only with JSON.',
-    messages: [{
-      role: 'user',
-      content: `Extract decision-maker contact info from this Indian business website.
+  // Use AI to validate + find decision makers
+  const result = await askAI<any>(
+    'Extract contact information from business websites. Respond only with JSON.',
+    `Extract decision-maker contact info from this Indian business website.
 
 Domain: ${domain}
 Content:
@@ -72,12 +66,8 @@ Respond with JSON:
   ],
   "sources": {"emails": ["which pages"], "phones": ["which pages"]},
   "confidence": number 0-1
-}`,
-    }],
-  });
-
-  const text = (msg.content[0] as { type: 'text'; text: string }).text;
-  const result = JSON.parse(text.replace(/```json|```/g, '').trim());
+}`
+  );
 
   return { domain, ...result, enrichedAt: new Date().toISOString() };
 }
