@@ -8,7 +8,9 @@ import { brandRoutes } from './routes/brand';
 import { intelRoutes } from './routes/intel';
 import { monitorRoutes } from './routes/monitor';
 import { reportsRoutes } from './routes/reports';
+import { billingRoutes } from './routes/billing';
 import { versionRoutes } from './routes/version';
+import { pageRoutes } from './routes/pages';
 import { setupQueues, connection, getIntelQueue, getCrawlQueue, getMonitorQueue, getBrandQueue } from './queue/setup';
 import { startMonitorScheduler } from './monitoring/scheduler';
 import { startCrawlWorker } from './queue/workers/crawlWorker';
@@ -32,8 +34,11 @@ async function bootstrap() {
   await app.register(monitorRoutes, { prefix: '/v1/monitor' });
   await app.register(reportsRoutes, { prefix: '/v1/reports' });
   await app.register(versionRoutes, { prefix: '/v1/versions' });
+  await app.register(billingRoutes, { prefix: '/v1/billing' });
 
   app.get('/health', async () => ({ status: 'ok', ts: Date.now() }));
+
+  await app.register(pageRoutes);
 
   app.get('/v1/logo/:domain', async (req, reply) => {
     try {

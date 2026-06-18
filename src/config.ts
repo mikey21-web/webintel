@@ -21,6 +21,10 @@ const envSchema = z.object({
   SUPABASE_JWT_SECRET: z.string().optional(),
   SUPABASE_JWK: z.string().optional(),
   SCOPED_JWT_SECRET: z.string().optional(),
+  RAZORPAY_KEY_ID: z.string().optional(),
+  RAZORPAY_KEY_SECRET: z.string().optional(),
+  RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
+  APP_URL: z.string().default('http://localhost:3456'),
   WEBHOOK_SECRET: z.string().optional(),
 });
 

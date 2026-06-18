@@ -26,6 +26,43 @@ export const creditBalances = pgTable('credit_balances', {
   resetAt: timestamp('reset_at', { withTimezone: true }).default(sql`NOW() + INTERVAL '1 month'`),
 });
 
+export const billingPlans = pgTable('billing_plans', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  description: text('description'),
+  credits: integer('credits').notNull(),
+  priceINR: integer('price_inr').notNull(),
+  interval: text('interval').notNull().default('month'),
+  razorpayPlanId: text('razorpay_plan_id'),
+  active: boolean('active').default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+});
+
+export const subscriptions = pgTable('subscriptions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  planId: uuid('plan_id').notNull().references(() => billingPlans.id),
+  razorpaySubscriptionId: text('razorpay_subscription_id'),
+  razorpayOrderId: text('razorpay_order_id'),
+  status: text('status').default('active'),
+  creditsGranted: integer('credits_granted').default(0),
+  currentPeriodStart: timestamp('current_period_start', { withTimezone: true }),
+  currentPeriodEnd: timestamp('current_period_end', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+});
+
+export const payments = pgTable('payments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  subscriptionId: uuid('subscription_id').references(() => subscriptions.id),
+  razorpayPaymentId: text('razorpay_payment_id'),
+  razorpayOrderId: text('razorpay_order_id'),
+  amountINR: integer('amount_inr').notNull(),
+  creditsPurchased: integer('credits_purchased').notNull(),
+  status: text('status').default('completed'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+});
+
 export const usageLogs = pgTable('usage_logs', {
   id: uuid('id').primaryKey().defaultRandom(),
   apiKeyId: uuid('api_key_id').references(() => apiKeys.id),
@@ -154,3 +191,6 @@ export type MonitorAlert = typeof monitorAlerts.$inferSelect;
 export type MonitorSnapshot = typeof monitorSnapshots.$inferSelect;
 export type Report = typeof reports.$inferSelect;
 export type CrawlJob = typeof crawlJobs.$inferSelect;
+export type BillingPlan = typeof billingPlans.$inferSelect;
+export type Subscription = typeof subscriptions.$inferSelect;
+export type Payment = typeof payments.$inferSelect;
