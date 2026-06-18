@@ -10,9 +10,13 @@ import { monitorRoutes } from './routes/monitor';
 import { reportsRoutes } from './routes/reports';
 import { billingRoutes } from './routes/billing';
 import { versionRoutes } from './routes/version';
+import { contractRoutes } from './routes/contracts';
+import { sessionRoutes } from './routes/session';
 import { pageRoutes } from './routes/pages';
 import { setupQueues, connection, getIntelQueue, getCrawlQueue, getMonitorQueue, getBrandQueue } from './queue/setup';
 import { startMonitorScheduler, stopMonitorScheduler } from './monitoring/scheduler';
+import { startExtractionScheduler, stopExtractionScheduler } from './extraction/scheduler';
+import { runExtractionJob } from './queue/workers/extractionWorker';
 import { startCrawlWorker } from './queue/workers/crawlWorker';
 import { startIntelWorker } from './queue/workers/intelWorker';
 import { startMonitorWorker } from './queue/workers/monitorWorker';
@@ -34,6 +38,8 @@ async function bootstrap() {
   await app.register(monitorRoutes, { prefix: '/v1/monitor' });
   await app.register(reportsRoutes, { prefix: '/v1/reports' });
   await app.register(versionRoutes, { prefix: '/v1/versions' });
+  await app.register(contractRoutes, { prefix: '/v1/contracts' });
+  await app.register(sessionRoutes, { prefix: '/v1' });
   await app.register(billingRoutes, { prefix: '/v1/billing' });
 
   app.get('/health', async () => ({ status: 'ok', ts: Date.now() }));
@@ -54,6 +60,7 @@ async function bootstrap() {
   startCrawlWorker();
   startMonitorWorker();
   startMonitorScheduler();
+  startExtractionScheduler(runExtractionJob);
 
   await app.listen({ port: config.PORT, host: '0.0.0.0' });
   console.log(`WebIntel API running on port ${config.PORT}`);
@@ -65,6 +72,7 @@ async function shutdown(signal: string) {
   console.log(`Received ${signal}, shutting down gracefully...`);
   try {
     stopMonitorScheduler();
+    stopExtractionScheduler();
     await app.close();
     const queues = [getIntelQueue(), getCrawlQueue(), getMonitorQueue(), getBrandQueue()];
     await Promise.allSettled(queues.map(q => q.close()));

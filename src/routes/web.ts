@@ -5,14 +5,20 @@ import { requireAuth } from '../middleware/auth';
 import { checkCredits, logUsage } from '../middleware/credits';
 import { rateLimit } from '../middleware/rateLimit';
 import { responseCache } from '../middleware/cache';
-import { sidecarScrape } from '../scraping/sidecar';
+import { sidecarScrape, sidecarParse } from '../scraping/sidecar';
+import { fetchPage } from '../fetch/tiers';
+import type { FetchKnobs } from '../fetch/types';
 import { uploadToR2 as r2Upload, getFromR2 as r2Get, r2PublicUrl } from '../storage/r2';
 import { getCrawlQueue } from '../queue/setup';
-import { askAI } from '../ai';
+import { askAI, extractWithConfidence } from '../ai';
+import { z } from 'zod';
 import { searchGoogle } from '../scraping/search';
+import { parseSerp } from '../scraping/serp';
 import { eq, sql } from 'drizzle-orm';
 import crypto from 'crypto';
 import { sanitizeError } from '../utils/errors';
+import { captureContract, validateContract, healContract } from '../extraction/contracts';
+import type { ContractSchema } from '../extraction/types';
 
 const CREDIT_COST = { scrape: 5, sitemap: 10, screenshot: 8, crawl: 25, extract: 15, query: 3 };
 
@@ -25,15 +31,38 @@ export async function webRoutes(app: FastifyInstance) {
 
   function scrapeEndpoint(endpoint: string, format: 'markdown' | 'html' | 'images', credits: number) {
     const creditCheck = checkCredits(credits);
-    app.post<{ Body: { url: string; waitFor?: number; useJs?: boolean; stealth?: boolean } }>(
+    app.post<{ Body: { url: string; waitFor?: number; useJs?: boolean; stealth?: boolean; tieredFetch?: boolean; proxyCountry?: string; proxyType?: 'residential' | 'datacenter'; sessionId?: string; render?: 'auto' | 'always' | 'never'; actions?: any[]; maxTier?: number; ignoreRobots?: boolean } }>(
       `/${endpoint}`,
       { preHandler: [...guard, creditCheck] },
       async (request, reply) => {
         const start = Date.now();
-        const { url, waitFor, useJs, stealth } = request.body;
+        const { url, waitFor, useJs, stealth, tieredFetch, proxyCountry, proxyType, sessionId, render, actions, maxTier, ignoreRobots } = request.body;
         if (!url) return reply.status(400).send({ error: 'url is required' });
 
         try {
+          if (tieredFetch) {
+            const knobs: FetchKnobs = { proxyCountry, proxyType, sessionId, render, actions, maxTier, ignoreRobots };
+            const fetchResult = await fetchPage(url, knobs);
+
+            if (!fetchResult.ok) {
+              recordUsage(request, `scrape/${format}`, 0, fetchResult.statusCode || 502, start, url);
+              return reply.status(502).send({
+                error: `Scrape blocked: ${fetchResult.reason}`,
+                blockType: fetchResult.blockType,
+                tier: fetchResult.tier,
+              });
+            }
+
+            recordUsage(request, `scrape/${format}`, credits, 200, start, url);
+            if (format === 'markdown') {
+              return reply.send({ markdown: fetchResult.content, html: fetchResult.html, tier: fetchResult.tier, tierDurationMs: fetchResult.durationMs });
+            }
+            if (format === 'html') {
+              return reply.send({ html: fetchResult.html, tier: fetchResult.tier, tierDurationMs: fetchResult.durationMs });
+            }
+            return reply.send({ images: [], tier: fetchResult.tier });
+          }
+
           const result = await sidecarScrape(url, { waitFor, useJs, screenshot: false, stealth });
 
           let data: any;
@@ -224,24 +253,122 @@ export async function webRoutes(app: FastifyInstance) {
     },
   );
 
-  app.post<{ Body: { url: string; schema?: Record<string, any>; prompt?: string } }>(
+  app.post<{ Body: { url: string; schema?: Record<string, any>; prompt?: string; contractMode?: boolean; tieredFetch?: boolean; proxyCountry?: string; proxyType?: 'residential' | 'datacenter'; sessionId?: string; render?: 'auto' | 'always' | 'never'; actions?: any[]; maxTier?: number; ignoreRobots?: boolean } }>(
     '/extract',
     { preHandler: [...guard, checkCredits(CREDIT_COST.extract)] },
     async (request, reply) => {
       const start = Date.now();
-      const { url, schema, prompt } = request.body;
+      const { url, schema, prompt, contractMode, tieredFetch, proxyCountry, proxyType, sessionId, render, actions, maxTier, ignoreRobots } = request.body;
       if (!url) return reply.status(400).send({ error: 'url is required' });
 
       try {
-        const result = await sidecarScrape(url, { waitFor: 2000 });
-        if (schema) {
-          const { data, confidence } = await runSchemaExtraction(result.markdown, schema);
-          recordUsage(request, 'extract', CREDIT_COST.extract, 200, start, url);
-          return reply.send({ url, data, confidence, metadata: result.metadata });
+        let markdown: string;
+        let html: string;
+        let fetchTier: number | undefined;
+
+        if (tieredFetch) {
+          const knobs: FetchKnobs = { proxyCountry, proxyType, sessionId, render, actions, maxTier, ignoreRobots };
+          const fetchResult = await fetchPage(url, knobs);
+
+          if (!fetchResult.ok) {
+            recordUsage(request, 'extract', 0, 502, start, url);
+            return reply.status(502).send({
+              error: `Extract blocked: ${fetchResult.reason}`,
+              blockType: fetchResult.blockType,
+              tier: fetchResult.tier,
+            });
+          }
+
+          markdown = fetchResult.content;
+          html = fetchResult.html;
+          fetchTier = fetchResult.tier;
+        } else {
+          const result = await sidecarScrape(url, { waitFor: 2000 });
+          markdown = result.markdown;
+          html = result.html;
         }
-        const extracted = await runExtraction(result.markdown, prompt);
+
+        const contentHash = crypto.createHash('sha256').update(markdown).digest('hex');
+
+        if (schema) {
+          const contractSchema = buildContractSchema(schema);
+          const zodSchema = contractSchemaToZod(contractSchema);
+
+          const extraction = await extractWithConfidence(zodSchema, markdown);
+
+          const values: Record<string, unknown> = {};
+          const confidence: Record<string, number> = {};
+          const sourceSnippets: Record<string, string> = {};
+          for (const [key, field] of Object.entries(extraction.fields)) {
+            values[key] = field.value;
+            confidence[key] = field.confidence;
+            sourceSnippets[key] = '';
+          }
+
+          let contractMeta: any = { drift_detected: false, healed_fields: [], isNewContract: false };
+          let contractId: string | null = null;
+
+          if (contractMode !== false) {
+            const captureResult = await captureContract({
+              userId: request.userId!,
+              url,
+              schema: contractSchema,
+              values,
+              sourceSnippets,
+              confidence,
+              contentHash,
+            });
+            contractId = captureResult.contractId;
+
+            if (!captureResult.isNew) {
+              const validation = await validateContract(contractId, values, contentHash);
+
+              if (validation.status === 'drifted' && validation.needsHealing.length > 0) {
+                const healing = await healContract(contractId, validation.needsHealing, markdown);
+
+                for (const [key, val] of Object.entries(healing.newValues)) {
+                  if (key in extraction.fields) {
+                    extraction.fields[key] = {
+                      value: val as any,
+                      confidence: extraction.fields[key as keyof typeof extraction.fields].confidence,
+                      status: healing.healedFields.includes(key) ? 'ok' : 'needs_review',
+                      source_providers: extraction.fields[key as keyof typeof extraction.fields].source_providers,
+                    };
+                  }
+                }
+
+                contractMeta = {
+                  drift_detected: true,
+                  healed_fields: healing.healedFields,
+                  healing_status: healing.status,
+                  diff: healing.diff,
+                  contractId,
+                };
+              } else {
+                contractMeta = {
+                  drift_detected: validation.status === 'drifted',
+                  healed_fields: [],
+                  contractId,
+                };
+              }
+            } else {
+              contractMeta = { drift_detected: false, healed_fields: [], isNewContract: true, contractId };
+            }
+          }
+
+          recordUsage(request, 'extract', CREDIT_COST.extract, 200, start, url);
+          return reply.send({
+            url,
+            ...extraction,
+            _contract: contractMeta,
+            tier: fetchTier,
+            metadata: { title: '' },
+          });
+        }
+
+        const extracted = await runExtraction(markdown, prompt);
         recordUsage(request, 'extract', CREDIT_COST.extract, 200, start, url);
-        return reply.send({ url, extracted, metadata: result.metadata });
+        return reply.send({ url, extracted, tier: fetchTier, metadata: { title: '' } });
       } catch (err: any) {
         recordUsage(request, 'extract', 0, 500, start, url);
         return reply.status(502).send({ error: `Extraction failed: ${sanitizeError(err)}` });
@@ -284,6 +411,54 @@ export async function webRoutes(app: FastifyInstance) {
       } catch (err: any) {
         recordUsage(request, 'search', 0, 500, start, query);
         return reply.status(502).send({ error: `Search failed: ${sanitizeError(err)}` });
+      }
+    },
+  );
+
+  app.post<{ Body: { query: string; gl?: string; location?: string } }>(
+    '/serp',
+    { preHandler: [...guard, checkCredits(10)] },
+    async (request, reply) => {
+      const start = Date.now();
+      const { query, gl, location } = request.body;
+      if (!query) return reply.status(400).send({ error: 'query is required' });
+
+      try {
+        const searchUrl = new URL('https://www.google.com/search');
+        searchUrl.searchParams.set('q', query);
+        searchUrl.searchParams.set('gl', gl || 'us');
+        if (location) searchUrl.searchParams.set('uule', `w+CAIQICI${Buffer.from(location).toString('base64')}`);
+
+        const result = await sidecarScrape(searchUrl.toString(), {
+          waitFor: 3000,
+          useJs: true,
+          stealth: true,
+        });
+
+        const serp = parseSerp(result.html);
+        recordUsage(request, 'serp', 10, 200, start, query);
+        return reply.send({ query, ...serp, serpMetadata: searchUrl.toString() });
+      } catch (err: any) {
+        recordUsage(request, 'serp', 0, 500, start, query);
+        return reply.status(502).send({ error: `SERP failed: ${sanitizeError(err)}` });
+      }
+    },
+  );
+
+  app.post<{ Body: { url: string } }>(
+    '/parse',
+    { preHandler: [...guard, checkCredits(5)] },
+    async (request, reply) => {
+      const start = Date.now();
+      const { url } = request.body;
+      if (!url) return reply.status(400).send({ error: 'url is required' });
+      try {
+        const result = await sidecarParse(url);
+        recordUsage(request, 'parse', 5, 200, start, url);
+        return reply.send(result);
+      } catch (err: any) {
+        recordUsage(request, 'parse', 0, 500, start, url);
+        return reply.status(502).send({ error: `Document parse failed: ${sanitizeError(err)}` });
       }
     },
   );
@@ -469,6 +644,62 @@ function extractSitemapUrls(markdown: string, baseUrl: string): string[] {
   return urls.slice(0, 500);
 }
 
+function buildContractSchema(raw: Record<string, any>): ContractSchema {
+  const fields: ContractSchema['fields'] = {};
+
+  if (raw.type === 'object' && raw.properties) {
+    for (const [key, def] of Object.entries(raw.properties) as [string, any][]) {
+      const type = def.type ?? 'string';
+      fields[key] = {
+        type,
+        description: def.description,
+        nullable: def.nullable ?? false,
+      };
+    }
+  } else if (raw.fields) {
+    for (const [key, def] of Object.entries(raw.fields) as [string, any][]) {
+      fields[key] = {
+        type: def.type ?? 'string',
+        description: def.description,
+        nullable: def.nullable ?? false,
+      };
+    }
+  } else {
+    for (const [key, val] of Object.entries(raw)) {
+      if (typeof val === 'object' && val !== null && 'type' in val) {
+        fields[key] = {
+          type: (val as any).type ?? 'string',
+          description: (val as any).description,
+          nullable: (val as any).nullable ?? false,
+        };
+      } else {
+        const jsType = Array.isArray(val) ? 'array' : typeof val;
+        fields[key] = { type: jsType, nullable: val === null };
+      }
+    }
+  }
+
+  return { fields };
+}
+
+function contractSchemaToZod(schema: ContractSchema): z.ZodObject<z.ZodRawShape> {
+  const shape: z.ZodRawShape = {};
+  for (const [key, def] of Object.entries(schema.fields)) {
+    let f: z.ZodType;
+    switch (def.type) {
+      case 'string': f = z.string(); break;
+      case 'number': f = z.number(); break;
+      case 'boolean': f = z.boolean(); break;
+      case 'array': f = z.array(z.unknown()); break;
+      default: f = z.unknown(); break;
+    }
+    if (def.nullable !== false) f = f.nullable();
+    if (def.description) f = f.describe(def.description);
+    shape[key] = f;
+  }
+  return z.object(shape);
+}
+
 async function runExtraction(markdown: string, prompt?: string): Promise<Record<string, any>> {
   const systemPrompt = prompt
     ? `Extract the following information from the page content. Return JSON only.\n\n${prompt}`
@@ -478,31 +709,6 @@ async function runExtraction(markdown: string, prompt?: string): Promise<Record<
     return await askAI<Record<string, any>>(systemPrompt, markdown.slice(0, 80000));
   } catch {
     return { raw: markdown.slice(0, 5000) };
-  }
-}
-
-async function runSchemaExtraction(markdown: string, schema: Record<string, any>): Promise<{ data: Record<string, any>; confidence: Record<string, number> }> {
-  const systemPrompt = `You are a precise data extractor. Extract the requested fields from the page content.
-
-JSON Schema for extraction:
-${JSON.stringify(schema, null, 2)}
-
-Return a JSON object with:
-- "data": an object with the extracted values matching the schema
-- "confidence": an object with the same keys, each value is a confidence score 0-1
-
-For each field:
-- 1.0 = directly found on the page
-- 0.7 = inferred from context
-- 0.3 = guessed with low confidence
-- 0.0 = not found
-
-Return ONLY valid JSON.`;
-
-  try {
-    return await askAI<{ data: Record<string, any>; confidence: Record<string, number> }>(systemPrompt, markdown.slice(0, 80000));
-  } catch {
-    return { data: {}, confidence: {} };
   }
 }
 

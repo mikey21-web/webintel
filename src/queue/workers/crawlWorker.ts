@@ -16,7 +16,7 @@ export function startCrawlWorker() {
       const result = await sidecarScrape(url, { useJs: true, waitFor: 3000 });
       
       // Extract links from markdown for additional pages
-      const linkRegex = /https?:\/\/[^\s"'<>\)]+/g;
+      const linkRegex = /https?:\/\/[^\s"'<>)]+/g;
       const links = (result.markdown.match(linkRegex) || [])
         .map((l: string) => l.replace(/[.,;:!?)]+$/, ''))
         .filter((l: string) => l.startsWith(new URL(url).origin))

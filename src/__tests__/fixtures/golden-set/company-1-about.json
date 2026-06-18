@@ -1,0 +1,24 @@
+{
+  "id": "company-1-about",
+  "url": "https://acmecorp.com/about",
+  "rawHtml": "<html><body><h1>About Acme Corp</h1><p class='mission'>Building the future of cloud infrastructure since 2015.</p><div class='stats'><span class='employees'>250+ employees</span><span class='founded'>Founded 2015</span><span class='hq'>San Francisco, CA</span></div><p>Acme Corp provides enterprise-grade Kubernetes management for teams of all sizes.</p></body></html>",
+  "extractedRawText": "About Acme Corp\nBuilding the future of cloud infrastructure since 2015.\n250+ employees\nFounded 2015\nSan Francisco, CA\nAcme Corp provides enterprise-grade Kubernetes management for teams of all sizes.",
+  "schema": {
+    "company_name": { "type": "string" },
+    "description": { "type": "string" },
+    "founded_year": { "type": "number" },
+    "employee_count": { "type": "number" },
+    "location": { "type": "string" }
+  },
+  "expected": {
+    "company_name": { "value": "Acme Corp", "minConfidence": 0.7 },
+    "description": { "value": "Building the future of cloud infrastructure since 2015.", "minConfidence": 0.6 },
+    "founded_year": { "value": 2015, "minConfidence": 0.7 },
+    "employee_count": { "value": 250, "minConfidence": 0.7 },
+    "location": { "value": "San Francisco, CA", "minConfidence": 0.6 }
+  },
+  "mockResponses": {
+    "openai": "{\"company_name\":\"Acme Corp\",\"description\":\"Building the future of cloud infrastructure since 2015.\",\"founded_year\":2015,\"employee_count\":250,\"location\":\"San Francisco, CA\"}",
+    "anthropic": "{\"company_name\":\"Acme Corp\",\"description\":\"Building the future of cloud infrastructure since 2015.\",\"founded_year\":2015,\"employee_count\":250,\"location\":\"San Francisco, CA\"}"
+  }
+}

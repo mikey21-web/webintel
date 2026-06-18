@@ -28,6 +28,16 @@ const envSchema = z.object({
   WEBHOOK_SECRET: z.string(),
   OPENAI_MODEL: z.string().optional(),
   ANTHROPIC_MODEL: z.string().optional(),
+  CONFIDENCE_CALIBRATION_PATH: z.string().optional(),
+  PROXY_PROVIDER: z.string().optional(),
+  PROXY_USERNAME: z.string().optional(),
+  PROXY_PASSWORD: z.string().optional(),
+  PROXY_HOST: z.string().optional(),
+  PROXY_PORT: z.string().optional(),
+  PROXY_URL: z.string().optional(),
+  CAPTCHA_PROVIDER: z.string().optional(),
+  CAPTCHA_API_KEY: z.string().optional(),
+  CAPTCHA_APP_ID: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

@@ -1,0 +1,24 @@
+{
+  "id": "job-1-senior",
+  "url": "https://jobs.example.com/senior-backend-engineer",
+  "rawHtml": "<html><body><div class='job-listing'><h1>Senior Backend Engineer</h1><div class='company-name'>TechCorp Inc.</div><div class='salary-range'>$150K - $200K</div><div class='location'>New York, NY (Remote OK)</div><p>We're looking for a senior backend engineer with 5+ years of experience in Node.js and PostgreSQL.</p></div></body></html>",
+  "extractedRawText": "Senior Backend Engineer\nTechCorp Inc.\n$150K - $200K\nNew York, NY (Remote OK)\nWe're looking for a senior backend engineer with 5+ years of experience in Node.js and PostgreSQL.",
+  "schema": {
+    "job_title": { "type": "string" },
+    "company": { "type": "string" },
+    "salary_min": { "type": "number" },
+    "salary_max": { "type": "number" },
+    "location": { "type": "string" }
+  },
+  "expected": {
+    "job_title": { "value": "Senior Backend Engineer", "minConfidence": 0.7 },
+    "company": { "value": "TechCorp Inc.", "minConfidence": 0.7 },
+    "salary_min": { "value": 150000, "minConfidence": 0.7 },
+    "salary_max": { "value": 200000, "minConfidence": 0.7 },
+    "location": { "value": "New York, NY (Remote OK)", "minConfidence": 0.6 }
+  },
+  "mockResponses": {
+    "openai": "{\"job_title\":\"Senior Backend Engineer\",\"company\":\"TechCorp Inc.\",\"salary_min\":150000,\"salary_max\":200000,\"location\":\"New York, NY (Remote OK)\"}",
+    "anthropic": "{\"job_title\":\"Senior Backend Engineer\",\"company\":\"TechCorp Inc.\",\"salary_min\":150000,\"salary_max\":200000,\"location\":\"New York, NY (Remote OK)\"}"
+  }
+}

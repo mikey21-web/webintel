@@ -1,0 +1,20 @@
+{
+  "id": "retry-2-wrong-type",
+  "url": "https://example.com/retry-types",
+  "rawHtml": "<html><body><div class='job'><h1>Data Engineer</h1><span class='salary'>$120,000</span><span class='location'>Remote</span></div></body></html>",
+  "extractedRawText": "Data Engineer $120,000 Remote",
+  "schema": {
+    "job_title": { "type": "string" },
+    "salary": { "type": "number" },
+    "location": { "type": "string" }
+  },
+  "expected": {
+    "job_title": { "value": "Data Engineer", "minConfidence": 0.7 },
+    "salary": { "value": 120000, "minConfidence": 0.7 },
+    "location": { "value": "Remote", "minConfidence": 0.7 }
+  },
+  "mockResponses": {
+    "openai": "{\"job_title\":\"Data Engineer\",\"salary\":\"$120,000\",\"location\":\"Remote\"}",
+    "anthropic": "{\"job_title\":\"Data Engineer\",\"salary\":120000,\"location\":\"Remote\"}"
+  }
+}

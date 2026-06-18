@@ -1,0 +1,18 @@
+{
+  "id": "pricing-3-disagree",
+  "url": "https://example-saas.com/pricing",
+  "rawHtml": "<html><body><h1>Plans</h1><div class='tier'><h2>Basic</h2><span>$19/month</span></div></body></html>",
+  "extractedRawText": "Plans\nBasic\n$19/month",
+  "schema": {
+    "plan_name": { "type": "string", "description": "Plan name" },
+    "monthly_price": { "type": "number", "description": "Monthly price in USD" }
+  },
+  "expected": {
+    "plan_name": { "value": "Basic", "minConfidence": 0.2 },
+    "monthly_price": { "value": 19, "minConfidence": 0.7 }
+  },
+  "mockResponses": {
+    "openai": "{\"plan_name\":\"Basic\",\"monthly_price\":19}",
+    "anthropic": "{\"plan_name\":\"Basic Plan\",\"monthly_price\":19}"
+  }
+}

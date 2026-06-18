@@ -15,7 +15,7 @@ interface MetadataResult {
 }
 
 const SOCIAL_DOMAINS: Record<string, RegExp[]> = {
-  twitter: [/twitter\.com/, /(?:^|[\/.])x\.com/],
+  twitter: [/twitter\.com/, /(?:^|[/.])x\.com/],
   linkedin: [/linkedin\.com/],
   instagram: [/instagram\.com/],
   facebook: [/facebook\.com/, /fb\.com/],

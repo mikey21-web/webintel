@@ -1,0 +1,24 @@
+{
+  "id": "job-2-no-salary",
+  "url": "https://jobs.example.com/frontend-developer",
+  "rawHtml": "<html><body><div class='job'><h1>Frontend Developer</h1><div class='company'>DesignStudio</div><div class='loc'>Austin, TX</div><p>Looking for a creative frontend developer proficient in React and TypeScript.</p></div></body></html>",
+  "extractedRawText": "Frontend Developer\nDesignStudio\nAustin, TX\nLooking for a creative frontend developer proficient in React and TypeScript.",
+  "schema": {
+    "job_title": { "type": "string" },
+    "company": { "type": "string" },
+    "salary_min": { "type": "number" },
+    "salary_max": { "type": "number" },
+    "location": { "type": "string" }
+  },
+  "expected": {
+    "job_title": { "value": "Frontend Developer", "minConfidence": 0.7 },
+    "company": { "value": "DesignStudio", "minConfidence": 0.7 },
+    "salary_min": { "value": null, "minConfidence": 0.5 },
+    "salary_max": { "value": null, "minConfidence": 0.5 },
+    "location": { "value": "Austin, TX", "minConfidence": 0.6 }
+  },
+  "mockResponses": {
+    "openai": "{\"job_title\":\"Frontend Developer\",\"company\":\"DesignStudio\",\"salary_min\":null,\"salary_max\":null,\"location\":\"Austin, TX\"}",
+    "anthropic": "{\"job_title\":\"Frontend Developer\",\"company\":\"DesignStudio\",\"salary_min\":null,\"salary_max\":null,\"location\":\"Austin, TX\"}"
+  }
+}

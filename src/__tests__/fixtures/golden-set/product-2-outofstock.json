@@ -1,0 +1,22 @@
+{
+  "id": "product-2-outofstock",
+  "url": "https://shop.example.com/products/blue-watch",
+  "rawHtml": "<html><body><h1>Ocean Blue Watch</h1><div class='product'><span class='price'>$249.00</span><span class='stock-status sold-out'>Sold Out</span></div><p>A stylish dive watch with sapphire crystal and 200m water resistance.</p></body></html>",
+  "extractedRawText": "Ocean Blue Watch\n$249.00\nSold Out\nA stylish dive watch with sapphire crystal and 200m water resistance.",
+  "schema": {
+    "product_name": { "type": "string" },
+    "price": { "type": "number" },
+    "in_stock": { "type": "boolean" },
+    "description": { "type": "string" }
+  },
+  "expected": {
+    "product_name": { "value": "Ocean Blue Watch", "minConfidence": 0.7 },
+    "price": { "value": 249, "minConfidence": 0.7 },
+    "in_stock": { "value": false, "minConfidence": 0.6 },
+    "description": { "value": "A stylish dive watch with sapphire crystal and 200m water resistance.", "minConfidence": 0.6 }
+  },
+  "mockResponses": {
+    "openai": "{\"product_name\":\"Ocean Blue Watch\",\"price\":249.00,\"in_stock\":false,\"description\":\"A stylish dive watch with sapphire crystal and 200m water resistance.\"}",
+    "anthropic": "{\"product_name\":\"Ocean Blue Watch\",\"price\":249.00,\"in_stock\":false,\"description\":\"A stylish dive watch with sapphire crystal and 200m water resistance.\"}"
+  }
+}

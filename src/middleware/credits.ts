@@ -37,6 +37,7 @@ export function checkCredits(cost: number) {
         try {
           await autoTopUp(request.userId);
         } catch {
+          void 0;
         }
       }
 

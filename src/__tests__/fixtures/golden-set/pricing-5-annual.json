@@ -1,0 +1,22 @@
+{
+  "id": "pricing-5-annual",
+  "url": "https://example-saas.com/pricing?billing=annual",
+  "rawHtml": "<html><body><div class='pricing'><div class='card'><h3>Growth</h3><span class='monthly'>$49/mo</span><span class='annual'>$39/mo billed annually</span><ul><li>50 users</li><li>25GB</li><li>Advanced analytics</li></ul></div></div></body></html>",
+  "extractedRawText": "Growth\n$49/mo\n$39/mo billed annually\n50 users\n25GB\nAdvanced analytics",
+  "schema": {
+    "plan_name": { "type": "string", "description": "Plan name" },
+    "monthly_price": { "type": "number", "description": "Monthly price when billed monthly" },
+    "annual_monthly_price": { "type": "number", "description": "Monthly-equivalent price when billed annually" },
+    "features": { "type": "array", "description": "Features" }
+  },
+  "expected": {
+    "plan_name": { "value": "Growth", "minConfidence": 0.7 },
+    "monthly_price": { "value": 49, "minConfidence": 0.7 },
+    "annual_monthly_price": { "value": 39, "minConfidence": 0.7 },
+    "features": { "value": ["50 users", "25GB", "Advanced analytics"], "minConfidence": 0.6 }
+  },
+  "mockResponses": {
+    "openai": "{\"plan_name\":\"Growth\",\"monthly_price\":49,\"annual_monthly_price\":39,\"features\":[\"50 users\",\"25GB\",\"Advanced analytics\"]}",
+    "anthropic": "{\"plan_name\":\"Growth\",\"monthly_price\":49,\"annual_monthly_price\":39,\"features\":[\"50 users\",\"25GB\",\"Advanced analytics\"]}"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "id": "product-3-variant",
+  "url": "https://shop.example.com/products/t-shirt?variant=large-blue",
+  "rawHtml": "<html><body><h1>Cotton T-Shirt</h1><div class='variant'><span class='selected-variant'>Large / Navy Blue</span><span class='price'>$34.99</span></div><p>100% organic cotton, pre-shrunk.</p></body></html>",
+  "extractedRawText": "Cotton T-Shirt\nLarge / Navy Blue\n$34.99\n100% organic cotton, pre-shrunk.",
+  "schema": {
+    "product_name": { "type": "string" },
+    "price": { "type": "number" },
+    "selected_variant": { "type": "string" }
+  },
+  "expected": {
+    "product_name": { "value": "Cotton T-Shirt", "minConfidence": 0.7 },
+    "price": { "value": 34.99, "minConfidence": 0.7 },
+    "selected_variant": { "value": "Large / Navy Blue", "minConfidence": 0.6 }
+  },
+  "mockResponses": {
+    "openai": "{\"product_name\":\"Cotton T-Shirt\",\"price\":34.99,\"selected_variant\":\"Large / Navy Blue\"}",
+    "anthropic": "{\"product_name\":\"Cotton T-Shirt\",\"price\":34.99,\"selected_variant\":\"Large / Navy Blue\"}"
+  }
+}

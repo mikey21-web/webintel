@@ -1,0 +1,20 @@
+{
+  "id": "inconsistent-1-missing-fields",
+  "url": "https://example.com/product-partial",
+  "rawHtml": "<html><body><h1>Wireless Mouse</h1><p>Ergonomic design with silent clicks.</p></body></html>",
+  "extractedRawText": "Wireless Mouse\nErgonomic design with silent clicks.",
+  "schema": {
+    "product_name": { "type": "string" },
+    "price": { "type": "number" },
+    "description": { "type": "string" }
+  },
+  "expected": {
+    "product_name": { "value": "Wireless Mouse", "minConfidence": 0.7 },
+    "price": { "value": null, "minConfidence": 0.5 },
+    "description": { "value": "Ergonomic design with silent clicks.", "minConfidence": 0.6 }
+  },
+  "mockResponses": {
+    "openai": "{\"product_name\":\"Wireless Mouse\",\"price\":null,\"description\":\"Ergonomic design with silent clicks.\"}",
+    "anthropic": "{\"product_name\":\"Wireless Mouse\",\"price\":null,\"description\":\"Ergonomic design with silent clicks.\"}"
+  }
+}

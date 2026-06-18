@@ -182,6 +182,39 @@ export const crawlJobs = pgTable('crawl_jobs', {
   completedAt: timestamp('completed_at', { withTimezone: true }),
 });
 
+export const extractionContracts = pgTable('extraction_contracts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  url: text('url').notNull(),
+  name: text('name'),
+  schema: jsonb('schema').notNull(),
+  fingerprint: jsonb('fingerprint').notNull(),
+  semanticAnchors: jsonb('semantic_anchors').default([]).notNull(),
+  provenance: jsonb('provenance').notNull(),
+  lastHealedAt: timestamp('last_healed_at', { withTimezone: true }),
+  lastRunAt: timestamp('last_run_at', { withTimezone: true }),
+  runCount: integer('run_count').default(0),
+  schedule: text('schedule').default('once').notNull(),
+  webhookUrl: text('webhook_url'),
+  active: boolean('active').default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+});
+
+export const extractionRuns = pgTable('extraction_runs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  contractId: uuid('contract_id').notNull().references(() => extractionContracts.id, { onDelete: 'cascade' }),
+  status: text('status').notNull(),
+  contentHash: text('content_hash').notNull(),
+  values: jsonb('values'),
+  confidence: jsonb('confidence'),
+  validationResult: jsonb('validation_result'),
+  diffFromContract: jsonb('diff_from_contract'),
+  healedFields: jsonb('healed_fields').default([]).notNull(),
+  error: text('error'),
+  extractedAt: timestamp('extracted_at', { withTimezone: true }).defaultNow(),
+});
+
 export const apiKeysUserIdIdx = index('idx_api_keys_user_id').on(apiKeys.userId);
 export const subscriptionsUserIdIdx = index('idx_subscriptions_user_id').on(subscriptions.userId);
 export const subscriptionsPlanIdIdx = index('idx_subscriptions_plan_id').on(subscriptions.planId);
@@ -196,6 +229,8 @@ export const reportsUserIdIdx = index('idx_reports_user_id').on(reports.userId);
 export const reportsIntelJobIdIdx = index('idx_reports_intel_job_id').on(reports.intelJobId);
 export const crawlJobsApiKeyIdIdx = index('idx_crawl_jobs_api_key_id').on(crawlJobs.apiKeyId);
 export const creditBalancesUserIdIdx = index('idx_credit_balances_user_id').on(creditBalances.userId);
+export const extractionContractsUserIdUrlIdx = index('idx_extraction_contracts_user_url').on(extractionContracts.userId, extractionContracts.url);
+export const extractionRunsContractIdIdx = index('idx_extraction_runs_contract_id').on(extractionRuns.contractId);
 
 export type User = typeof users.$inferSelect;
 export type ApiKey = typeof apiKeys.$inferSelect;
@@ -209,3 +244,5 @@ export type CrawlJob = typeof crawlJobs.$inferSelect;
 export type BillingPlan = typeof billingPlans.$inferSelect;
 export type Subscription = typeof subscriptions.$inferSelect;
 export type Payment = typeof payments.$inferSelect;
+export type ExtractionContract = typeof extractionContracts.$inferSelect;
+export type ExtractionRun = typeof extractionRuns.$inferSelect;

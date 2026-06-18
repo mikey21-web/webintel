@@ -1,0 +1,18 @@
+{
+  "id": "empty-1-blank-page",
+  "url": "https://empty-site.example.com",
+  "rawHtml": "<html><head><title></title></head><body></body></html>",
+  "extractedRawText": "",
+  "schema": {
+    "title": { "type": "string" },
+    "body_text": { "type": "string" }
+  },
+  "expected": {
+    "title": { "value": null, "minConfidence": 0.3 },
+    "body_text": { "value": null, "minConfidence": 0.3 }
+  },
+  "mockResponses": {
+    "openai": "{\"title\":null,\"body_text\":null}",
+    "anthropic": "{\"title\":null,\"body_text\":null}"
+  }
+}

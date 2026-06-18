@@ -13,9 +13,9 @@ interface TechSignature {
 }
 
 const TECH_SIGNATURES: TechSignature[] = [
-  { name: 'React', category: 'framework', regex: /react(\.js|\.development\.js)?["\']?[\)>]|data-reactroot/i },
+  { name: 'React', category: 'framework', regex: /react(\.js|\.development\.js)?["']?[)>]|data-reactroot/i },
   { name: 'Next.js', category: 'framework', regex: /__NEXT_DATA__|next\.js|\.next\/static/i },
-  { name: 'Vue.js', category: 'framework', regex: /vue(\.js|\.runtime)?["\']?[\)>]|__VUE__|data-v-/i },
+  { name: 'Vue.js', category: 'framework', regex: /vue(\.js|\.runtime)?["']?[)>]|__VUE__|data-v-/i },
   { name: 'Nuxt.js', category: 'framework', regex: /__NUXT__|nuxt\.js/i },
   { name: 'Angular', category: 'framework', regex: /ng-version=|ng-app|angular(\.js|\.min\.js)/i },
   { name: 'Svelte', category: 'framework', regex: /__svelte|svelte\.(mjs|js)/i },
@@ -23,13 +23,13 @@ const TECH_SIGNATURES: TechSignature[] = [
   { name: 'Lodash', category: 'library', regex: /lodash(\.min)?\.js/i },
   { name: 'GSAP', category: 'animation', regex: /gsap|tweenmax|timelinemax/i },
   { name: 'Three.js', category: '3d', regex: /three(\.min)?\.js|webgl/i },
-  { name: 'Tailwind CSS', category: 'css', regex: /tailwind|\.tw-|class=["\'][^"]*\s+(sm:|md:|lg:|xl:)/i },
+  { name: 'Tailwind CSS', category: 'css', regex: /tailwind|\.tw-|class=["'][^"]*\s+(sm:|md:|lg:|xl:)/i },
   { name: 'Bootstrap', category: 'css', regex: /bootstrap(\.min)?\.(css|js)|data-bs-/i },
   { name: 'WordPress', category: 'cms', regex: /\/wp-content\/|\/wp-includes\/|wp-emoji-release\.min\.js/i },
   { name: 'Shopify', category: 'ecommerce', regex: /shopify|myshopify\.com|cdn\.shopify/i },
   { name: 'WooCommerce', category: 'ecommerce', regex: /woocommerce|wc-cart-fragments/i },
   { name: 'Magento', category: 'ecommerce', regex: /magento|mage\/|requirejs\/|varien/i },
-  { name: 'Laravel', category: 'backend', regex: /laravel|csrf-token.*content=["\']?[^"\']+["\']?>/i },
+  { name: 'Laravel', category: 'backend', regex: /laravel|csrf-token.*content=["']?[^"']+["']?>/i },
   { name: 'Drupal', category: 'cms', regex: /drupal|drupal\.settings/i },
   { name: 'Cloudflare', category: 'hosting', regex: /cloudflare|__cfduid/i },
   { name: 'Vercel', category: 'hosting', regex: /vercel|__VERCEL/i },

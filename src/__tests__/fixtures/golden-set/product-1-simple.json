@@ -1,0 +1,24 @@
+{
+  "id": "product-1-simple",
+  "url": "https://shop.example.com/products/red-shoes",
+  "rawHtml": "<html><body><h1>Classic Red Sneakers</h1><div class='product-info'><span class='price'>$89.99</span><span class='sku'>SKU: SNK-RED-42</span><span class='availability'>In Stock</span></div><p class='description'>Premium canvas sneakers in classic red. Comfortable and durable.</p></body></html>",
+  "extractedRawText": "Classic Red Sneakers\n$89.99\nSKU: SNK-RED-42\nIn Stock\nPremium canvas sneakers in classic red. Comfortable and durable.",
+  "schema": {
+    "product_name": { "type": "string", "description": "Product title" },
+    "price": { "type": "number", "description": "Price in USD" },
+    "sku": { "type": "string", "description": "Stock keeping unit" },
+    "in_stock": { "type": "boolean", "description": "Whether product is in stock" },
+    "description": { "type": "string", "description": "Product description" }
+  },
+  "expected": {
+    "product_name": { "value": "Classic Red Sneakers", "minConfidence": 0.7 },
+    "price": { "value": 89.99, "minConfidence": 0.7 },
+    "sku": { "value": "SNK-RED-42", "minConfidence": 0.7 },
+    "in_stock": { "value": true, "minConfidence": 0.6 },
+    "description": { "value": "Premium canvas sneakers in classic red. Comfortable and durable.", "minConfidence": 0.6 }
+  },
+  "mockResponses": {
+    "openai": "{\"product_name\":\"Classic Red Sneakers\",\"price\":89.99,\"sku\":\"SNK-RED-42\",\"in_stock\":true,\"description\":\"Premium canvas sneakers in classic red. Comfortable and durable.\"}",
+    "anthropic": "{\"product_name\":\"Classic Red Sneakers\",\"price\":89.99,\"sku\":\"SNK-RED-42\",\"in_stock\":true,\"description\":\"Premium canvas sneakers in classic red. Comfortable and durable.\"}"
+  }
+}

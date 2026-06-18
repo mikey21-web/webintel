@@ -1,0 +1,20 @@
+{
+  "id": "pricing-1-simple",
+  "url": "https://example-saas.com/pricing",
+  "rawHtml": "<html><body><h1>Pricing Plans</h1><div class='plan'><h2>Starter</h2><span class='price'>$29/month</span><ul class='features'><li>10 users</li><li>5GB storage</li><li>Email support</li></ul></div><div class='plan'><h2>Pro</h2><span class='price'>$99/month</span><ul class='features'><li>Unlimited users</li><li>100GB storage</li><li>Priority support</li><li>API access</li></ul></div></body></html>",
+  "extractedRawText": "Pricing Plans\nStarter\n$29/month\n10 users\n5GB storage\nEmail support\nPro\n$99/month\nUnlimited users\n100GB storage\nPriority support\nAPI access",
+  "schema": {
+    "plan_name": { "type": "string", "description": "The name of the pricing plan" },
+    "monthly_price": { "type": "number", "description": "The monthly price in USD" },
+    "features": { "type": "array", "description": "List of features included in the plan" }
+  },
+  "expected": {
+    "plan_name": { "value": "Starter", "minConfidence": 0.7 },
+    "monthly_price": { "value": 29, "minConfidence": 0.7 },
+    "features": { "value": ["10 users", "5GB storage", "Email support"], "minConfidence": 0.6 }
+  },
+  "mockResponses": {
+    "openai": "{\"plan_name\":\"Starter\",\"monthly_price\":29,\"features\":[\"10 users\",\"5GB storage\",\"Email support\"]}",
+    "anthropic": "{\"plan_name\":\"Starter\",\"monthly_price\":29,\"features\":[\"10 users\",\"5GB storage\",\"Email support\"]}"
+  }
+}

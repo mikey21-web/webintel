@@ -1,4 +1,4 @@
-// @ts-ignore - puppeteer-core types not installed
+// @ts-expect-error - puppeteer-core types not installed
 import puppeteer from 'puppeteer-core';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';

@@ -1,0 +1,20 @@
+{
+  "id": "pricing-4-freetier",
+  "url": "https://freemium-tool.io/pricing",
+  "rawHtml": "<html><body><div class='plans'><div class='free'><h3>Free</h3><p>Free forever</p><ul><li>1 project</li><li>Community support</li></ul></div><div class='premium'><h3>Premium</h3><p class='amount'>$12/mo</p><ul><li>Unlimited projects</li><li>Priority support</li></ul></div></div></body></html>",
+  "extractedRawText": "Free\nFree forever\n1 project\nCommunity support\nPremium\n$12/mo\nUnlimited projects\nPriority support",
+  "schema": {
+    "plan_name": { "type": "string", "description": "Plan name" },
+    "monthly_price": { "type": "number", "description": "Monthly price, 0 if free" },
+    "features": { "type": "array", "description": "Plan features" }
+  },
+  "expected": {
+    "plan_name": { "value": "Free", "minConfidence": 0.7 },
+    "monthly_price": { "value": 0, "minConfidence": 0.7 },
+    "features": { "value": ["1 project", "Community support"], "minConfidence": 0.6 }
+  },
+  "mockResponses": {
+    "openai": "{\"plan_name\":\"Free\",\"monthly_price\":0,\"features\":[\"1 project\",\"Community support\"]}",
+    "anthropic": "{\"plan_name\":\"Free\",\"monthly_price\":0,\"features\":[\"1 project\",\"Community support\"]}"
+  }
+}

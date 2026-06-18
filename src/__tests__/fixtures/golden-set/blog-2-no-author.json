@@ -1,0 +1,22 @@
+{
+  "id": "blog-2-no-author",
+  "url": "https://techblog.example.com/posts/how-to-optimize-db",
+  "rawHtml": "<html><body><article><h1>How to Optimize Your PostgreSQL Queries</h1><div class='meta'><span class='date'>June 1, 2026</span></div><p>Database optimization is critical for scaling applications...</p></article></body></html>",
+  "extractedRawText": "How to Optimize Your PostgreSQL Queries\nJune 1, 2026\nDatabase optimization is critical for scaling applications...",
+  "schema": {
+    "title": { "type": "string" },
+    "author": { "type": "string" },
+    "date": { "type": "string" },
+    "excerpt": { "type": "string" }
+  },
+  "expected": {
+    "title": { "value": "How to Optimize Your PostgreSQL Queries", "minConfidence": 0.7 },
+    "author": { "value": null, "minConfidence": 0.5 },
+    "date": { "value": "June 1, 2026", "minConfidence": 0.7 },
+    "excerpt": { "value": "Database optimization is critical for scaling applications...", "minConfidence": 0.6 }
+  },
+  "mockResponses": {
+    "openai": "{\"title\":\"How to Optimize Your PostgreSQL Queries\",\"author\":null,\"date\":\"June 1, 2026\",\"excerpt\":\"Database optimization is critical for scaling applications...\"}",
+    "anthropic": "{\"title\":\"How to Optimize Your PostgreSQL Queries\",\"author\":null,\"date\":\"June 1, 2026\",\"excerpt\":\"Database optimization is critical for scaling applications...\"}"
+  }
+}

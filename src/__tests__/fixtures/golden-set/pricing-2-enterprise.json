@@ -1,0 +1,20 @@
+{
+  "id": "pricing-2-enterprise",
+  "url": "https://example-saas.com/pricing?plan=enterprise",
+  "rawHtml": "<html><body><div class='enterprise-plan'><h2>Enterprise</h2><p class='price-large'>$499/month</p><div class='feature-list'><ul><li>Unlimited everything</li><li>SSO / SAML</li><li>Dedicated support</li><li>Custom SLA</li><li>On-premise deployment</li></ul></div></div></body></html>",
+  "extractedRawText": "Enterprise\n$499/month\nUnlimited everything\nSSO / SAML\nDedicated support\nCustom SLA\nOn-premise deployment",
+  "schema": {
+    "plan_name": { "type": "string", "description": "Name of the pricing plan" },
+    "monthly_price": { "type": "number", "description": "Monthly price in USD" },
+    "features": { "type": "array", "description": "Included features" }
+  },
+  "expected": {
+    "plan_name": { "value": "Enterprise", "minConfidence": 0.7 },
+    "monthly_price": { "value": 499, "minConfidence": 0.7 },
+    "features": { "value": ["Unlimited everything", "SSO / SAML", "Dedicated support", "Custom SLA", "On-premise deployment"], "minConfidence": 0.6 }
+  },
+  "mockResponses": {
+    "openai": "{\"plan_name\":\"Enterprise\",\"monthly_price\":499,\"features\":[\"Unlimited everything\",\"SSO / SAML\",\"Dedicated support\",\"Custom SLA\",\"On-premise deployment\"]}",
+    "anthropic": "{\"plan_name\":\"Enterprise\",\"monthly_price\":499,\"features\":[\"Unlimited everything\",\"SSO / SAML\",\"Dedicated support\",\"Custom SLA\",\"On-premise deployment\"]}"
+  }
+}

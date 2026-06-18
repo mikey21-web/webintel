@@ -1,0 +1,22 @@
+{
+  "id": "blog-1-article",
+  "url": "https://techblog.example.com/posts/solidjs-vs-react",
+  "rawHtml": "<html><body><article><h1>SolidJS vs React in 2026: A Performance Deep-Dive</h1><div class='meta'><span class='author'>Jane Chen</span><span class='date'>March 15, 2026</span></div><p>SolidJS has been gaining traction as a faster alternative to React...</p></article></body></html>",
+  "extractedRawText": "SolidJS vs React in 2026: A Performance Deep-Dive\nJane Chen\nMarch 15, 2026\nSolidJS has been gaining traction as a faster alternative to React...",
+  "schema": {
+    "title": { "type": "string" },
+    "author": { "type": "string" },
+    "date": { "type": "string" },
+    "excerpt": { "type": "string" }
+  },
+  "expected": {
+    "title": { "value": "SolidJS vs React in 2026: A Performance Deep-Dive", "minConfidence": 0.7 },
+    "author": { "value": "Jane Chen", "minConfidence": 0.7 },
+    "date": { "value": "March 15, 2026", "minConfidence": 0.7 },
+    "excerpt": { "value": "SolidJS has been gaining traction as a faster alternative to React...", "minConfidence": 0.6 }
+  },
+  "mockResponses": {
+    "openai": "{\"title\":\"SolidJS vs React in 2026: A Performance Deep-Dive\",\"author\":\"Jane Chen\",\"date\":\"March 15, 2026\",\"excerpt\":\"SolidJS has been gaining traction as a faster alternative to React...\"}",
+    "anthropic": "{\"title\":\"SolidJS vs React in 2026: A Performance Deep-Dive\",\"author\":\"Jane Chen\",\"date\":\"March 15, 2026\",\"excerpt\":\"SolidJS has been gaining traction as a faster alternative to React...\"}"
+  }
+}

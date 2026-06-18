@@ -1,0 +1,20 @@
+{
+  "id": "inconsistent-2-wrong-types",
+  "url": "https://example.com/data-mismatch",
+  "rawHtml": "<html><body><h1>DataPlan</h1><span id='price'>Contact us for pricing</span><span id='users'>Lots</span></body></html>",
+  "extractedRawText": "DataPlan\nContact us for pricing\nLots",
+  "schema": {
+    "plan_name": { "type": "string" },
+    "monthly_price": { "type": "number" },
+    "max_users": { "type": "number" }
+  },
+  "expected": {
+    "plan_name": { "value": "DataPlan", "minConfidence": 0.7 },
+    "monthly_price": { "value": null, "minConfidence": 0.4 },
+    "max_users": { "value": null, "minConfidence": 0.4 }
+  },
+  "mockResponses": {
+    "openai": "{\"plan_name\":\"DataPlan\",\"monthly_price\":null,\"max_users\":null}",
+    "anthropic": "{\"plan_name\":\"DataPlan\",\"monthly_price\":null,\"max_users\":null}"
+  }
+}

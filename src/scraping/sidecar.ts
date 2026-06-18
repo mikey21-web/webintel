@@ -16,6 +16,15 @@ export interface ScrapeOptions {
   stealth?: boolean;
 }
 
+export interface ParseResult {
+  url: string;
+  markdown: string;
+  documentType: 'pdf' | 'docx';
+  contentType: string;
+  sizeBytes: number;
+  metadata: Record<string, unknown>;
+}
+
 export async function sidecarScrape(url: string, options: ScrapeOptions = {}): Promise<ScrapeResult> {
   const response = await fetch(`${config.CRAWL4AI_SIDECAR_URL}/scrape`, {
     method: 'POST',
@@ -37,4 +46,18 @@ export async function sidecarScrape(url: string, options: ScrapeOptions = {}): P
   }
 
   return response.json() as Promise<ScrapeResult>;
+}
+
+export async function sidecarParse(url: string): Promise<ParseResult> {
+  const response = await fetch(`${config.CRAWL4AI_SIDECAR_URL}/parse?url=${encodeURIComponent(url)}`, {
+    method: 'POST',
+    signal: AbortSignal.timeout(60000),
+  });
+
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`Sidecar parse error ${response.status}: ${err}`);
+  }
+
+  return response.json() as Promise<ParseResult>;
 }

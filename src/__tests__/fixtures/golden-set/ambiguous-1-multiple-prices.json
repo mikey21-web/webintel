@@ -1,0 +1,18 @@
+{
+  "id": "ambiguous-1-multiple-prices",
+  "url": "https://example.com/pricing-multiple",
+  "rawHtml": "<html><body><h1>All Plans</h1><div class='plan'><h3>Basic</h3><span class='price'>$19</span></div><div class='plan'><h3>Pro</h3><span class='price'>$49</span></div><div class='plan'><h3>Enterprise</h3><span class='price'>$199</span></div></body></html>",
+  "extractedRawText": "All Plans\nBasic $19\nPro $49\nEnterprise $199",
+  "schema": {
+    "plan_name": { "type": "string" },
+    "monthly_price": { "type": "number" }
+  },
+  "expected": {
+    "plan_name": { "value": "Basic", "minConfidence": 0.2 },
+    "monthly_price": { "value": 19, "minConfidence": 0.2 }
+  },
+  "mockResponses": {
+    "openai": "{\"plan_name\":\"Basic\",\"monthly_price\":19}",
+    "anthropic": "{\"plan_name\":\"Pro\",\"monthly_price\":49}"
+  }
+}

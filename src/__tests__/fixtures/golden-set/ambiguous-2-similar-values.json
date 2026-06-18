@@ -1,0 +1,20 @@
+{
+  "id": "ambiguous-2-similar-values",
+  "url": "https://example.com/confusing-data",
+  "rawHtml": "<html><body><div class='stats'><p class='revenue'>Revenue: $49M</p><p class='funding'>Funding: $49M</p><p class='employees'>49 employees</p></div></body></html>",
+  "extractedRawText": "Revenue: $49M\nFunding: $49M\n49 employees",
+  "schema": {
+    "revenue_millions": { "type": "number" },
+    "funding_millions": { "type": "number" },
+    "employee_count": { "type": "number" }
+  },
+  "expected": {
+    "revenue_millions": { "value": 49, "minConfidence": 0.5 },
+    "funding_millions": { "value": 49, "minConfidence": 0.5 },
+    "employee_count": { "value": 49, "minConfidence": 0.5 }
+  },
+  "mockResponses": {
+    "openai": "{\"revenue_millions\":49,\"funding_millions\":49,\"employee_count\":49}",
+    "anthropic": "{\"revenue_millions\":49,\"funding_millions\":49,\"employee_count\":49}"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "id": "company-3-legacy",
+  "url": "https://legacy-company.com/about",
+  "rawHtml": "<html><body><h2>Our Story</h2><p>Since 1892, Legacy Co. has been family-owned. Today we employ over 5,000 people across 12 countries.</p><p>Headquarters: Chicago, Illinois</p></body></html>",
+  "extractedRawText": "Our Story\nSince 1892, Legacy Co. has been family-owned. Today we employ over 5,000 people across 12 countries.\nHeadquarters: Chicago, Illinois",
+  "schema": {
+    "company_name": { "type": "string" },
+    "founded_year": { "type": "number" },
+    "employee_count": { "type": "number" },
+    "location": { "type": "string" }
+  },
+  "expected": {
+    "company_name": { "value": "Legacy Co.", "minConfidence": 0.6 },
+    "founded_year": { "value": 1892, "minConfidence": 0.7 },
+    "employee_count": { "value": 5000, "minConfidence": 0.7 },
+    "location": { "value": "Chicago, Illinois", "minConfidence": 0.6 }
+  },
+  "mockResponses": {
+    "openai": "{\"company_name\":\"Legacy Co.\",\"founded_year\":1892,\"employee_count\":5000,\"location\":\"Chicago, Illinois\"}",
+    "anthropic": "{\"company_name\":\"Legacy Co.\",\"founded_year\":1892,\"employee_count\":5000,\"location\":\"Chicago, Illinois\"}"
+  }
+}

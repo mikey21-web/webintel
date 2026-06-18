@@ -1,0 +1,22 @@
+{
+  "id": "company-2-startup",
+  "url": "https://startupx.io/about",
+  "rawHtml": "<html><body><main><h1>StartupX</h1><p class='tagline'>AI-powered analytics for e-commerce</p><div class='team-size'>Team of 12</div><div class='offices'>Remote-first</div></main></body></html>",
+  "extractedRawText": "StartupX\nAI-powered analytics for e-commerce\nTeam of 12\nRemote-first",
+  "schema": {
+    "company_name": { "type": "string" },
+    "description": { "type": "string" },
+    "employee_count": { "type": "number" },
+    "location": { "type": "string" }
+  },
+  "expected": {
+    "company_name": { "value": "StartupX", "minConfidence": 0.7 },
+    "description": { "value": "AI-powered analytics for e-commerce", "minConfidence": 0.6 },
+    "employee_count": { "value": 12, "minConfidence": 0.7 },
+    "location": { "value": "Remote-first", "minConfidence": 0.6 }
+  },
+  "mockResponses": {
+    "openai": "{\"company_name\":\"StartupX\",\"description\":\"AI-powered analytics for e-commerce\",\"employee_count\":12,\"location\":\"Remote-first\"}",
+    "anthropic": "{\"company_name\":\"StartupX\",\"description\":\"AI-powered analytics for e-commerce\",\"employee_count\":12,\"location\":\"Remote-first\"}"
+  }
+}
