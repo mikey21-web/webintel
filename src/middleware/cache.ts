@@ -16,7 +16,7 @@ export function responseCache(ttlSeconds: number, methods: string[] = ['GET']) {
     const originalSend = reply.send.bind(reply);
     reply.send = function (payload: unknown) {
       if (reply.statusCode === 200 && payload) {
-        connection.setex(cacheKey, ttlSeconds, JSON.stringify(payload)).catch(() => {});
+        connection.setex(cacheKey, ttlSeconds, JSON.stringify(payload)).catch((err: unknown) => console.error('Failed to set cache:', err));
       }
       return originalSend(payload);
     } as typeof reply.send;

@@ -25,7 +25,7 @@ function validateWebhookUrl(url: string): void {
 
 async function deliverWebhook(url: string, payload: any, jobId: string) {
   validateWebhookUrl(url);
-  const signature = crypto.createHmac('sha256', config.WEBHOOK_SECRET || 'webintel-webhook-secret').update(JSON.stringify(payload)).digest('hex');
+  const signature = crypto.createHmac('sha256', config.WEBHOOK_SECRET).update(JSON.stringify(payload)).digest('hex');
   for (let i = 0; i < 3; i++) {
     try {
       const res = await fetch(url, {
@@ -60,7 +60,7 @@ export async function runIntelJob(jobId: string, module: string, input: Record<s
       case 'enrich': result = await runEnrich(cleanInput.domain); break;
       default: throw new Error(`Unknown module: ${module}`);
     }
-    await db.update(intelJobs).set({ status: 'done', result: result as any, completedAt: new Date() }).where(eq(intelJobs.id, jobId));
+    await db.update(intelJobs).set({ status: 'done', result, completedAt: new Date() }).where(eq(intelJobs.id, jobId));
     if (webhookUrl) {
       await deliverWebhook(webhookUrl, { jobId, status: 'done', result }, jobId);
     }

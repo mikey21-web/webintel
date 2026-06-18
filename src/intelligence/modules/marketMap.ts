@@ -44,7 +44,9 @@ export async function runMarketMap(keyword: string, location?: string, limit: nu
         `From this website content for domain "${domain}":\n\n${text}\n\nExtract: name, description, targetSegment, estimatedSize, pricingModel, uniqueAngle. Return JSON.`
       );
       companies.push(profile);
-    } catch { /* skip failed */ }
+    } catch (err) {
+      if (err instanceof Error) console.error(`Market map profile failed for ${domain}:`, err.message);
+    }
   }
 
   const marketSummary = await askAI<{ dominantPlayers: string[]; emergingPlayers: string[]; whitespaceGaps: string[] }>(

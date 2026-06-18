@@ -1,4 +1,5 @@
 import { Queue } from 'bullmq';
+import type { IRedisClient } from 'bullmq';
 import IORedis from 'ioredis';
 import { config } from '../config';
 
@@ -8,7 +9,7 @@ const redis = new IORedis(redisUrl, {
   tls: redisUrl.startsWith('rediss://') ? {} : undefined,
 });
 
-export const connection = redis as any;
+export const connection = redis as unknown as IORedis & IRedisClient;
 
 export const intelQueue = new Queue('intel', { connection });
 export const crawlQueue = new Queue('crawl', { connection });

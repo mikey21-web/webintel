@@ -121,7 +121,7 @@ export async function webRoutes(app: FastifyInstance) {
         url,
         maxPages,
         status: 'queued',
-      } as any);
+      });
 
       await getCrawlQueue().add('crawl', {
         jobId,
@@ -148,6 +148,9 @@ export async function webRoutes(app: FastifyInstance) {
       const { url, maxPages = 10 } = request.body;
       if (!url) return reply.status(400).send({ error: 'url is required' });
 
+      let aborted = false;
+      request.raw.on('close', () => { aborted = true; });
+
       reply.raw.writeHead(200, {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
@@ -166,7 +169,6 @@ export async function webRoutes(app: FastifyInstance) {
         sendEvent('page', { url, markdownLength: result.markdown.length, metadata: result.metadata });
         sendEvent('progress', { pagesCrawled: 1, totalPages: maxPages });
 
-        // Extract links for further crawling
         const linkRegex = /https?:\/\/[^\s"'<>)+]+/g;
         const links = [...new Set((result.markdown.match(linkRegex) || [])
           .map((l: string) => l.replace(/[.,;:!?)]+$/, ''))
@@ -175,13 +177,15 @@ export async function webRoutes(app: FastifyInstance) {
 
         let pagesCrawled = 1;
         for (const link of links) {
-          if (pagesCrawled >= maxPages) break;
+          if (pagesCrawled >= maxPages || aborted) break;
           try {
             const pageResult = await sidecarScrape(link, { waitFor: 1000 });
             pagesCrawled++;
             sendEvent('page', { url: link, markdownLength: pageResult.markdown.length, metadata: pageResult.metadata });
             sendEvent('progress', { pagesCrawled, totalPages: maxPages });
-          } catch { /* skip failed page */ }
+          } catch (err) {
+            if (err instanceof Error) console.error('Failed to scrape page in crawl:', err.message);
+          }
         }
 
         sendEvent('complete', { pagesCrawled, status: 'done' });
@@ -439,7 +443,9 @@ export async function webRoutes(app: FastifyInstance) {
                Return ONLY JSON.`
             );
             products.push({ url: productUrl, ...product });
-          } catch { /* skip failed individual products */ }
+          } catch (err) {
+            if (err instanceof Error) console.error('Failed to extract product:', err.message);
+          }
         }
 
         recordUsage(request, 'extract-products', 10, 200, start, domain);

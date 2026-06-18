@@ -95,7 +95,7 @@ class WebIntel:
         return self._request("GET", f"/v1/brand/profile?domain={domain}")
 
     def brand_logo(self, domain: str) -> Any:
-        return self._request("GET", f"/v1/logo/{domain}")
+        return self._request("GET", f"/v1/brand/logo?domain={domain}")
 
     def brand_colors(self, domain: str) -> Any:
         return self._request("GET", f"/v1/brand/colors?domain={domain}")
@@ -120,6 +120,15 @@ class WebIntel:
 
     def logo_url(self, domain: str) -> str:
         return f"https://cdn.webintel.dev/logo/{domain}.png"
+
+    def close(self) -> None:
+        self._client.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
 
     def health(self) -> Any:
         return self._request("GET", "/health")

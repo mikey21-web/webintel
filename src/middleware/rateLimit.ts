@@ -9,8 +9,8 @@ export function rateLimit() {
     const plan = request.userPlan ?? 'free';
     const limit = PLAN_LIMITS[plan] ?? 30;
     const key = `rl:${request.apiKeyId}`;
-    await connection.set(key, 0, 'NX', 'EX', 60);
     const current = await connection.incr(key);
+    if (current === 1) await connection.expire(key, 60);
 
     reply.header('X-RateLimit-Limit', limit);
     reply.header('X-RateLimit-Remaining', Math.max(0, limit - current));

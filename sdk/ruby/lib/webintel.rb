@@ -5,7 +5,7 @@ class WebIntel
 
   def initialize(api_key, base_url = "https://api.webintel.dev")
     @api_key = api_key
-    self.class.base_uri(base_url)
+    @base_url = base_url
   end
 
   private
@@ -16,7 +16,7 @@ class WebIntel
 
   def post(path, body = {})
     3.times do |attempt|
-      response = self.class.post(path, body: body.to_json, headers: headers, timeout: 30)
+      response = HTTParty.post("#{@base_url}#{path}", body: body.to_json, headers: headers, timeout: 30)
       if [429, 502, 503].include?(response.code) && attempt < 2
         sleep(2 ** attempt)
         next
@@ -28,7 +28,7 @@ class WebIntel
 
   def get(path)
     3.times do |attempt|
-      response = self.class.get(path, headers: headers, timeout: 30)
+      response = HTTParty.get("#{@base_url}#{path}", headers: headers, timeout: 30)
       if [429, 502, 503].include?(response.code) && attempt < 2
         sleep(2 ** attempt)
         next
@@ -113,7 +113,7 @@ class WebIntel
   end
 
   def logo_url(domain)
-    "#{self.class.base_uri}/v1/logo/#{domain}"
+    "#{@base_url}/v1/logo/#{domain}"
   end
 
   def health

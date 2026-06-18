@@ -10,13 +10,13 @@ const freeProviders = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', '
 async function brandHandler(domain: string, handler: (brand: any) => any) {
   if (!domain) {
     const err = new Error('domain query parameter is required');
-    (err as any).statusCode = 400;
+    (err as Error & { statusCode: number }).statusCode = 400;
     throw err;
   }
   const brand = await resolveBrand(domain);
   if (!brand) {
     const err = new Error('Brand not found');
-    (err as any).statusCode = 404;
+    (err as Error & { statusCode: number }).statusCode = 404;
     throw err;
   }
   return handler(brand);
@@ -269,7 +269,7 @@ If you cannot identify the merchant, return {"brandName": null, "domain": null, 
       if (req.userPlan === 'free') {
         return reply.status(402).send({ error: 'Prefetch requires a paid plan' });
       }
-      resolveBrand(domain).catch(() => {});
+      resolveBrand(domain).catch((err) => console.error('Brand resolve failed:', err));
       return reply.send({ status: 'ok', message: `Prefetch initiated for ${domain}`, domain });
     } catch (err: any) {
       return reply.status(500).send({ error: sanitizeError(err) });
@@ -287,7 +287,7 @@ If you cannot identify the merchant, return {"brandName": null, "domain": null, 
       if (req.userPlan === 'free') {
         return reply.status(402).send({ error: 'Prefetch requires a paid plan' });
       }
-      resolveBrand(domain).catch(() => {});
+      resolveBrand(domain).catch((err) => console.error('Brand resolve failed:', err));
       return reply.send({ status: 'ok', message: `Prefetch initiated for ${domain}`, domain });
     } catch (err: any) {
       return reply.status(500).send({ error: sanitizeError(err) });

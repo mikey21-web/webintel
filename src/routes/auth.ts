@@ -7,19 +7,15 @@ import { requireAuth } from '../middleware/auth';
 import { verify as verifyJwt, createScopedToken } from '../utils/jwt';
 
 export async function authRoutes(app: FastifyInstance) {
-  app.post<{ Body: { email: string; name?: string; plan?: string } }>('/keys', { preHandler: requireAuth }, async (request, reply) => {
-    const { email, name, plan = 'free' } = request.body;
-    if (!email) return reply.status(400).send({ error: 'Email is required' });
-
-    let [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
-    if (!user) {
-      [user] = await db.insert(users).values({ email, plan }).returning();
-    }
+  app.post<{ Body: { name?: string } }>('/keys', { preHandler: requireAuth }, async (request, reply) => {
+    const [user] = await db.select().from(users).where(eq(users.id, request.userId!)).limit(1);
+    if (!user) return reply.status(401).send({ error: 'User not found' });
 
     const raw = generateApiKey();
     const hash = hashApiKey(raw);
     const prefix = raw.slice(0, 10);
-    const [keyRow] = await db.insert(apiKeys).values({ userId: user.id, keyHash: hash, keyPrefix: prefix, name: name ?? 'Default' }).returning();
+    const keyName = request.body?.name || 'Default';
+    const [keyRow] = await db.insert(apiKeys).values({ userId: user.id, keyHash: hash, keyPrefix: prefix, name: keyName }).returning();
 
     return reply.status(201).send({
       apiKey: raw,

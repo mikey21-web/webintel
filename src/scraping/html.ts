@@ -44,7 +44,9 @@ export async function scrapeDomain(domain: string, paths: string[] = ['/', '/pri
     try {
       const url = path.startsWith('http') ? path : `${baseUrl}${path}`;
       results[path] = await scrapeUrl(url);
-    } catch { /* skip failed pages */ }
+    } catch (err) {
+      if (err instanceof Error) console.error(`Failed to scrape ${path}:`, err.message);
+    }
   }
   return results;
 }

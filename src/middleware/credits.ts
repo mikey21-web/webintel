@@ -70,7 +70,7 @@ export async function logUsage(apiKeyId: string, endpoint: string, credits: numb
     url: url ?? null,
     module: module ?? null,
     createdAt: new Date(),
-  } as any).catch(() => {});
+  } as any).catch((err) => console.error('Failed to log usage:', err));
 }
 
 export async function autoTopUp(userId: string): Promise<boolean> {

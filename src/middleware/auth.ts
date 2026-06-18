@@ -39,7 +39,7 @@ export async function requireAuth(request: FastifyRequest, reply: FastifyReply) 
       return reply.status(401).send({ error: 'Invalid or revoked API key' });
     }
 
-    db.update(apiKeys).set({ lastUsedAt: new Date() }).where(eq(apiKeys.id, keyRow.id)).catch(() => {});
+    db.update(apiKeys).set({ lastUsedAt: new Date() }).where(eq(apiKeys.id, keyRow.id)).catch((err) => console.error('Failed to update lastUsedAt:', err));
 
     request.apiKeyId = keyRow.id!;
     request.userId = keyRow.userId!;

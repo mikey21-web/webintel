@@ -8,8 +8,8 @@ export function setupRequestLogger(app: FastifyInstance) {
       url: request.url,
       status: reply.statusCode,
       duration: reply.elapsedTime ?? 0,
-      apiKeyId: (request as any).apiKeyId || 'anon',
-      userId: (request as any).userId || 'anon',
+      apiKeyId: request.apiKeyId || 'anon',
+      userId: request.userId || 'anon',
     }));
   });
 }

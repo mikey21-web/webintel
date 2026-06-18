@@ -5,7 +5,8 @@ import { runIntelJob } from '../../intelligence/runner';
 export function startIntelWorker() {
   const worker = new Worker('intel', async (job) => {
     try {
-      const { jobId, module, input } = job.data;
+      const { jobId, module, input, webhookUrl } = job.data;
+      if (webhookUrl) input.webhookUrl = webhookUrl;
       await runIntelJob(jobId, module, input);
     } catch (err) {
       console.error(`Intel worker error for job ${job.data.jobId}:`, err);

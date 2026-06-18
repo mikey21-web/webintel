@@ -1,10 +1,16 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { checkRobotsTxt } from '../scraping/robots';
+import { checkRobotsTxt, RobotsCheckResult } from '../scraping/robots';
+
+declare module 'fastify' {
+  interface FastifyRequest {
+    robotsCheck?: RobotsCheckResult;
+  }
+}
 
 export function requireRobotsPermission() {
   return async (request: FastifyRequest, reply: FastifyReply) => {
     // Only check POST/PUT/PATCH requests with a URL body
-    const body = request.body as any;
+    const body = request.body as { url?: string; domain?: string };
     const url = body?.url || body?.domain;
     
     if (url && typeof url === 'string') {
@@ -18,7 +24,7 @@ export function requireRobotsPermission() {
         });
       }
       // Store for downstream use
-      (request as any).robotsCheck = result;
+      request.robotsCheck = result;
     }
   };
 }

@@ -36,7 +36,9 @@ export async function runLeadIntel(domains: string[], context?: string): Promise
         `Analyze this company website for domain "${domain}" and provide lead intelligence.\n${context ? `\nContext: ${context}\n` : ''}\n\nContent:\n${combinedText}\n\nReturn JSON with: companyName, industry, estimatedSize, estimatedRevenue, techStack (array), currentSolutions (array), painPoints (array), buyingSignals (array of {strength, reason}), redFlags (array), decisionMakers (array), outreachAngle, score (0-100), scoreReason.`
       );
       results.push(result);
-    } catch { /* skip failed */ }
+    } catch (err) {
+      if (err instanceof Error) console.error(`Lead intel failed for ${domain}:`, err.message);
+    }
   }
   return results;
 }

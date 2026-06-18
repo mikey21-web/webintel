@@ -25,11 +25,11 @@ export async function monitorRoutes(app: FastifyInstance) {
     const input = createMonitorSchema.parse(req.body);
     const [monitor] = await db.insert(monitors).values({
       name: input.label ?? `Monitor ${input.url}`,
-      urls: [input.url] as any,
+      urls: [input.url],
       checkInterval: input.interval,
       active: true,
       userId: req.userId!,
-    } as any).returning();
+    }).returning();
     return reply.status(201).send(monitor);
   });
 

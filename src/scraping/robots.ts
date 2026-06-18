@@ -15,7 +15,9 @@ async function fetchRobotsTxt(domain: string): Promise<string> {
       signal: AbortSignal.timeout(5000),
     });
     if (res.ok) return res.text();
-  } catch { /* ignore fetch errors */ }
+  } catch (err) {
+    if (err instanceof Error) console.error(`Failed to fetch robots.txt:`, err.message);
+  }
   return '';
 }
 

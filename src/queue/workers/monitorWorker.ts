@@ -41,7 +41,7 @@ export function startMonitorWorker() {
           monitorId,
           url,
           diffSummary: classification.summary,
-          diffDetail: classification as any,
+          diffDetail: classification,
           severity: classification.severity,
         }).returning();
         

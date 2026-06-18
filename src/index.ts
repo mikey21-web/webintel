@@ -12,7 +12,7 @@ import { billingRoutes } from './routes/billing';
 import { versionRoutes } from './routes/version';
 import { pageRoutes } from './routes/pages';
 import { setupQueues, connection, getIntelQueue, getCrawlQueue, getMonitorQueue, getBrandQueue } from './queue/setup';
-import { startMonitorScheduler } from './monitoring/scheduler';
+import { startMonitorScheduler, stopMonitorScheduler } from './monitoring/scheduler';
 import { startCrawlWorker } from './queue/workers/crawlWorker';
 import { startIntelWorker } from './queue/workers/intelWorker';
 import { startMonitorWorker } from './queue/workers/monitorWorker';
@@ -64,6 +64,7 @@ bootstrap().catch(err => { console.error(err); process.exit(1); });
 async function shutdown(signal: string) {
   console.log(`Received ${signal}, shutting down gracefully...`);
   try {
+    stopMonitorScheduler();
     await app.close();
     const queues = [getIntelQueue(), getCrawlQueue(), getMonitorQueue(), getBrandQueue()];
     await Promise.allSettled(queues.map(q => q.close()));

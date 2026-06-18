@@ -85,11 +85,11 @@ export async function pageRoutes(app: FastifyInstance) {
 
     let apiStatus = 'operational';
     let apiLatency = 0;
-    let uptimeDays = 0;
+    const uptimeDays = Math.floor(process.uptime() / 86400);
 
     try {
       const start = Date.now();
-      await fetch(`http://localhost:${config.PORT}/health`);
+      await fetch(`http://127.0.0.1:${config.PORT}/health`);
       apiLatency = Date.now() - start;
     } catch {
       apiStatus = 'down';
@@ -97,11 +97,13 @@ export async function pageRoutes(app: FastifyInstance) {
 
     let recentErrors = 0;
     try {
-      const [result] = await db.execute(sql`
+      const result = await db.execute(sql`
         SELECT COUNT(*) as count FROM usage_logs WHERE status >= 500 AND created_at > NOW() - INTERVAL '24 hours'
       `);
-      recentErrors = parseInt((result as any).rows?.[0]?.count || '0', 10);
-    } catch { /* db might not be available */ }
+      recentErrors = parseInt(String(result[0]?.count ?? '0'), 10);
+    } catch (err) {
+      if (err instanceof Error) console.error('Status page DB query failed:', err.message);
+    }
 
     if (recentErrors > 10) apiStatus = 'degraded';
 

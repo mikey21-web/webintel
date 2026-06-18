@@ -55,7 +55,7 @@ export const payments = pgTable('payments', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   subscriptionId: uuid('subscription_id').references(() => subscriptions.id),
-  razorpayPaymentId: text('razorpay_payment_id'),
+  razorpayPaymentId: text('razorpay_payment_id').unique(),
   razorpayOrderId: text('razorpay_order_id'),
   amountINR: integer('amount_inr').notNull(),
   creditsPurchased: integer('credits_purchased').notNull(),
