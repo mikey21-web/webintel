@@ -32,6 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <script dangerouslySetInnerHTML={{ __html: darkModeScript }} />
         <link rel="icon" href="/favicon.ico" sizes="any" />
+        <meta name="deploysafe-verify" content="deploysafe-verify=0520b425e22932a2372ec07c8b8358126ca6293c1004aa374209d0cc0e00b7b1" />
       </head>
       <body>
         <SupabaseProvider>
